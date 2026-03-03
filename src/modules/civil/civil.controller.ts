@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  ParseIntPipe,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -15,7 +6,6 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { CivilService } from './civil.service';
-import { UpdateCivilDto } from './dto/update-civil.dto';
 
 @ApiTags('Civil')
 @ApiBearerAuth()
@@ -39,17 +29,5 @@ export class CivilController {
   @Get(':id')
   getById(@Param('id', ParseIntPipe) id: number) {
     return this.civil.getById(id);
-  }
-
-  @ApiOperation({ summary: 'Update a civil profile' })
-  @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateCivilDto) {
-    return this.civil.update(id, dto);
-  }
-
-  @ApiOperation({ summary: 'Delete a civil profile' })
-  @Delete(':id')
-  delete(@Param('id', ParseIntPipe) id: number) {
-    return this.civil.delete(id);
   }
 }

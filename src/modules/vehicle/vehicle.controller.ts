@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  ParseIntPipe,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -15,8 +6,6 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { VehicleService } from './vehicle.service';
-import { UpdateVehicleDto } from './dto/update-vehicle.dto';
-import { MarkStolenDto } from './dto/mark-stolen.dto';
 
 @ApiTags('Vehicles')
 @ApiBearerAuth()
@@ -39,23 +28,5 @@ export class VehicleController {
   @Get(':id')
   getById(@Param('id', ParseIntPipe) id: number) {
     return this.vehicles.getById(id);
-  }
-
-  @ApiOperation({ summary: 'Update a vehicle by plate' })
-  @Patch(':plate')
-  update(@Param('plate') plate: string, @Body() dto: UpdateVehicleDto) {
-    return this.vehicles.update(plate, dto);
-  }
-
-  @ApiOperation({ summary: 'Mark a vehicle as stolen/not stolen' })
-  @Patch(':plate/stolen')
-  markStolen(@Param('plate') plate: string, @Body() dto: MarkStolenDto) {
-    return this.vehicles.markStolen(plate, dto.stolen);
-  }
-
-  @ApiOperation({ summary: 'Delete a vehicle' })
-  @Delete(':id')
-  delete(@Param('id', ParseIntPipe) id: number) {
-    return this.vehicles.delete(id);
   }
 }

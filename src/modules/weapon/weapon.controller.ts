@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  ParseIntPipe,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -15,8 +6,6 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { WeaponService } from './weapon.service';
-import { UpdateWeaponDto } from './dto/update-weapon.dto';
-import { MarkStolenDto } from './dto/mark-stolen.dto';
 
 @ApiTags('Weapons')
 @ApiBearerAuth()
@@ -39,26 +28,5 @@ export class WeaponController {
   @Get(':id')
   getById(@Param('id', ParseIntPipe) id: number) {
     return this.weapons.getById(id);
-  }
-
-  @ApiOperation({ summary: 'Update a weapon by serial number' })
-  @Patch(':serialNumber')
-  update(@Param('serialNumber') serial: string, @Body() dto: UpdateWeaponDto) {
-    return this.weapons.update(serial, dto);
-  }
-
-  @ApiOperation({ summary: 'Mark a weapon as stolen/not stolen' })
-  @Patch(':serialNumber/stolen')
-  markStolen(
-    @Param('serialNumber') serial: string,
-    @Body() dto: MarkStolenDto,
-  ) {
-    return this.weapons.markStolen(serial, dto.stolen);
-  }
-
-  @ApiOperation({ summary: 'Delete a weapon' })
-  @Delete(':id')
-  delete(@Param('id', ParseIntPipe) id: number) {
-    return this.weapons.delete(id);
   }
 }

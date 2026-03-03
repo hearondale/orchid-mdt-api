@@ -122,6 +122,19 @@ export class WeaponService extends BaseService<
     return weapon;
   }
 
+  async deleteBySerial(serialNumber: string): Promise<void> {
+    const existing = await this.prisma.weapon.findUnique({
+      where: { serialNumber },
+    });
+    if (!existing)
+      throw new NotFoundException(
+        `Weapon with serial ${serialNumber} not found`,
+      );
+    await this.prisma.weapon.delete({ where: { serialNumber } });
+    await this.invalidateId(existing.id);
+    await this.invalidatePages();
+  }
+
   async findBySerial(serialNumber: string): Promise<Weapon | null> {
     return this.prisma.weapon.findUnique({ where: { serialNumber } });
   }

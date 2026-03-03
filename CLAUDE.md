@@ -116,15 +116,15 @@ SEED_IDENTIFIER=license:test123
 - [x] DepartmentModule — getPage + CRUD
 - [x] FiveM server script — handshake flow
 
-## What's Next (in order)
-- [ ] Task 004 — Vehicle & Weapon
-- [ ] Task 005 — PenalCode
-- [ ] Task 006 — ArrestReport
-- [ ] Task 007 — Bolo
-- [ ] Task 008 — Incident + Evidence
-- [ ] Task 009 — Dispatch/CAD
-- [ ] Task 010 — OrderableItem
-- [ ] Task 011 — MDT WebSocket Gateway (Vue client connections)
+## What's Built (continued)
+- [x] Task 004 — Vehicle & Weapon
+- [x] Task 005 — PenalCode
+- [x] Task 006 — ArrestReport
+- [x] Task 007 — Bolo
+- [x] Task 008 — Incident + Evidence
+- [x] Task 009 — Dispatch/CAD
+- [x] Task 010 — OrderableItem
+- [x] Task 011 — MDT WebSocket Gateway (Vue client connections)
 
 ## Entity Types & Access Model
 
@@ -153,16 +153,16 @@ SEED_IDENTIFIER=license:test123
    - Calls `DispatchService.assignUnit(callId, unitId)`
 5. `DispatchService.assignUnit` → updates DB + UnitManager + broadcasts `dispatch:assigned`
 
-## What's Next (updated)
-- [ ] Task 004 — Vehicle & Weapon
-- [ ] Task 005 — PenalCode
-- [ ] Task 006 — ArrestReport
-- [ ] Task 007 — Bolo
-- [ ] Task 008 — Incident + Evidence
-- [ ] Task 009 — Dispatch/CAD
-- [ ] Task 010 — OrderableItem
-- [ ] Task 011 — MDT WebSocket Gateway (Vue clients + call accept/deny)
-- [ ] Task 012 — ServerGuard + /server/* endpoints (FiveM HTTP access)
+## What's Next
+- [x] Task 004 — Vehicle & Weapon
+- [x] Task 005 — PenalCode
+- [x] Task 006 — ArrestReport
+- [x] Task 007 — Bolo
+- [x] Task 008 — Incident + Evidence
+- [x] Task 009 — Dispatch/CAD
+- [x] Task 010 — OrderableItem
+- [x] Task 011 — MDT WebSocket Gateway (Vue clients + call accept/deny)
+- [x] Task 012 — ServerGuard + /server/* endpoints (FiveM HTTP access)
 
 ## Development Workflow & Tools
 > **Stop Building for Simple Checks:** Do not run `pnpm build` or `pnpm dev` just to check for errors. Use the linter.

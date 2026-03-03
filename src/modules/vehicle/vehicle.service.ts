@@ -125,6 +125,15 @@ export class VehicleService extends BaseService<
     return vehicle;
   }
 
+  async deleteByPlate(plate: string): Promise<void> {
+    const existing = await this.prisma.vehicle.findUnique({ where: { plate } });
+    if (!existing)
+      throw new NotFoundException(`Vehicle with plate ${plate} not found`);
+    await this.prisma.vehicle.delete({ where: { plate } });
+    await this.invalidateId(existing.id);
+    await this.invalidatePages();
+  }
+
   async findByPlate(plate: string): Promise<Vehicle | null> {
     return this.prisma.vehicle.findUnique({ where: { plate } });
   }
