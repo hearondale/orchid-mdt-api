@@ -1,0 +1,312 @@
+
+generator client {
+  provider        = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DepartmentType {
+  LSPD
+  LSSD
+  FIRE
+  EMS
+  SAHP
+  FIB
+  DISPATCH
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  SUSPENDED
+  VACATION
+}
+
+enum IncidentStatus {
+  OPEN
+  CLOSED
+  COLD
+}
+
+enum EvidenceType {
+  PHYSICAL
+  DIGITAL
+  TESTIMONIAL
+  WEAPON
+  DOCUMENT
+}
+
+enum BoloType {
+  PERSON
+  VEHICLE
+  WEAPON
+}
+
+enum CallStatus {
+  PENDING
+  ASSIGNED
+  ENROUTE
+  ONSCENE
+  CLOSED
+}
+
+enum OrderItemType {
+  WEAPON
+  EQUIPMENT
+  VEHICLE
+}
+
+
+model Civil {
+  id       Int      @id @default(autoincrement())
+  name     String
+  surname  String
+  dob      String
+  licenses String[]
+
+  officer       Officer?
+  vehicles      Vehicle[]
+  weapons       Weapon[]
+  arrestReports ArrestReport[]    @relation("ArrestSuspect")
+  incidentRoles IncidentSuspect[]
+
+  @@map("civil")
+}
+
+model Department {
+  id     Int            @id @default(autoincrement())
+  name   String
+  type   DepartmentType
+  access String[]
+
+  officers       Officer[]
+  incidents      Incident[]
+  orderableItems OrderableItemDepartment[]
+
+  @@map("department")
+}
+
+model Officer {
+  id               Int              @id @default(autoincrement())
+  civilId          Int              @unique
+  departmentId     Int
+  identifier       String           @unique
+  badge            String           @unique
+  callsign         String
+  rank             String
+  isAdmin          Boolean          @default(false)
+  employmentStatus EmploymentStatus @default(ACTIVE)
+  permissions      String[]
+
+  civil         Civil             @relation(fields: [civilId], references: [id])
+  department    Department        @relation(fields: [departmentId], references: [id])
+  arrestReports ArrestReport[]    @relation("ProcessingOfficer")
+  evidence      Evidence[]        @relation("CollectedBy")
+  incidentRoles IncidentOfficer[]
+  bolos         Bolo[]
+  dispatchRoles DispatchOfficer[]
+
+  @@map("officer")
+}
+
+model Vehicle {
+  id      Int     @id @default(autoincrement())
+  plate   String  @unique
+  vin     String  @unique
+  make    String
+  model   String
+  color   String
+  stolen  Boolean @default(false)
+  ownerId Int?
+
+  owner Civil? @relation(fields: [ownerId], references: [id])
+
+  @@map("vehicle")
+}
+
+model Weapon {
+  id           Int     @id @default(autoincrement())
+  serialNumber String  @unique
+  weaponType   String
+  registered   Boolean @default(false)
+  stolen       Boolean @default(false)
+  notes        String?
+  ownerId      Int?
+
+  owner Civil? @relation(fields: [ownerId], references: [id])
+
+  @@map("weapon")
+}
+
+
+model PenalCode {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  title       String
+  category    String
+  description String
+  fineAmount  Int    @default(0)
+
+  @@map("penal_code")
+}
+
+
+model ArrestReport {
+  id                  Int      @id @default(autoincrement())
+  suspectId           Int
+  processingOfficerId Int
+  penalCodeIds        Int[]
+  bailAmount          Int      @default(0)
+  sentenceMinutes     Int      @default(0)
+  notes               String?
+  createdAt           DateTime @default(now())
+
+  suspect           Civil         @relation("ArrestSuspect", fields: [suspectId], references: [id])
+  processingOfficer Officer       @relation("ProcessingOfficer", fields: [processingOfficerId], references: [id])
+  incidents         IncidentArrest[]
+
+  @@map("arrest_report")
+}
+
+model Bolo {
+  id               Int       @id @default(autoincrement())
+  issuedById       Int
+  targetType       BoloType
+  targetIdentifier String
+  description      String
+  active           Boolean   @default(true)
+  expiresAt        DateTime?
+
+  issuedBy  Officer        @relation(fields: [issuedById], references: [id])
+  incidents IncidentBolo[]
+
+  @@map("bolo")
+}
+
+model Incident {
+  id           Int            @id @default(autoincrement())
+  departmentId Int
+  title        String
+  description  String
+  status       IncidentStatus @default(OPEN)
+  createdAt    DateTime       @default(now())
+
+  department Department        @relation(fields: [departmentId], references: [id])
+  officers   IncidentOfficer[]
+  suspects   IncidentSuspect[]
+  arrests    IncidentArrest[]
+  bolos      IncidentBolo[]
+  evidence   Evidence[]
+
+  @@map("incident")
+}
+
+
+model Evidence {
+  id            Int          @id @default(autoincrement())
+  incidentId    Int
+  collectedById Int
+  label         String
+  type          EvidenceType
+  description   String
+
+  incident    Incident @relation(fields: [incidentId], references: [id])
+  collectedBy Officer  @relation("CollectedBy", fields: [collectedById], references: [id])
+
+  @@map("evidence")
+}
+
+
+model IncidentOfficer {
+  incidentId Int
+  officerId  Int
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+  officer  Officer  @relation(fields: [officerId], references: [id])
+
+  @@id([incidentId, officerId])
+  @@map("incident_officer")
+}
+
+model IncidentSuspect {
+  incidentId Int
+  civilId    Int
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+  civil    Civil    @relation(fields: [civilId], references: [id])
+
+  @@id([incidentId, civilId])
+  @@map("incident_suspect")
+}
+
+model IncidentArrest {
+  incidentId Int
+  arrestId   Int
+
+  incident Incident     @relation(fields: [incidentId], references: [id])
+  arrest   ArrestReport @relation(fields: [arrestId], references: [id])
+
+  @@id([incidentId, arrestId])
+  @@map("incident_arrest")
+}
+
+model IncidentBolo {
+  incidentId Int
+  boloId     Int
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+  bolo     Bolo     @relation(fields: [boloId], references: [id])
+
+  @@id([incidentId, boloId])
+  @@map("incident_bolo")
+}
+
+model DispatchCall {
+  id        Int        @id @default(autoincrement())
+  code      String
+  message   String
+  priority  String
+  location  String
+  status    CallStatus @default(PENDING)
+  createdAt DateTime   @default(now())
+
+  units DispatchOfficer[]
+
+  @@map("dispatch_call")
+}
+
+model DispatchOfficer {
+  dispatchId Int
+  officerId  Int
+
+  dispatch DispatchCall @relation(fields: [dispatchId], references: [id])
+  officer  Officer      @relation(fields: [officerId], references: [id])
+
+  @@id([dispatchId, officerId])
+  @@map("dispatch_officer")
+}
+
+
+model OrderableItem {
+  id        Int           @id @default(autoincrement())
+  name      String
+  type      OrderItemType
+  spawncode String
+  amount    Int           @default(1)
+
+  departments OrderableItemDepartment[]
+
+  @@map("orderable_item")
+}
+
+model OrderableItemDepartment {
+  itemId       Int
+  departmentId Int
+
+  item       OrderableItem @relation(fields: [itemId], references: [id])
+  department Department    @relation(fields: [departmentId], references: [id])
+
+  @@id([itemId, departmentId])
+  @@map("orderable_item_department")
+}
