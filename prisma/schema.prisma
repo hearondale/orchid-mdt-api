@@ -1,6 +1,5 @@
-
 generator client {
-  provider        = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -57,13 +56,14 @@ enum OrderItemType {
   VEHICLE
 }
 
-
 model Civil {
-  id       Int      @id @default(autoincrement())
-  name     String
-  surname  String
-  dob      String
-  licenses String[]
+  id           Int      @id @default(autoincrement())
+  name         String
+  surname      String
+  dob          String
+  registration String   @default("")
+  address      String?
+  licenses     String[]
 
   officer       Officer?
   vehicles      Vehicle[]
@@ -139,7 +139,6 @@ model Weapon {
   @@map("weapon")
 }
 
-
 model PenalCode {
   id          Int    @id @default(autoincrement())
   code        String @unique
@@ -151,7 +150,6 @@ model PenalCode {
   @@map("penal_code")
 }
 
-
 model ArrestReport {
   id                  Int      @id @default(autoincrement())
   suspectId           Int
@@ -162,8 +160,8 @@ model ArrestReport {
   notes               String?
   createdAt           DateTime @default(now())
 
-  suspect           Civil         @relation("ArrestSuspect", fields: [suspectId], references: [id])
-  processingOfficer Officer       @relation("ProcessingOfficer", fields: [processingOfficerId], references: [id])
+  suspect           Civil            @relation("ArrestSuspect", fields: [suspectId], references: [id])
+  processingOfficer Officer          @relation("ProcessingOfficer", fields: [processingOfficerId], references: [id])
   incidents         IncidentArrest[]
 
   @@map("arrest_report")
@@ -202,7 +200,6 @@ model Incident {
   @@map("incident")
 }
 
-
 model Evidence {
   id            Int          @id @default(autoincrement())
   incidentId    Int
@@ -216,7 +213,6 @@ model Evidence {
 
   @@map("evidence")
 }
-
 
 model IncidentOfficer {
   incidentId Int
@@ -286,7 +282,6 @@ model DispatchOfficer {
   @@id([dispatchId, officerId])
   @@map("dispatch_officer")
 }
-
 
 model OrderableItem {
   id        Int           @id @default(autoincrement())

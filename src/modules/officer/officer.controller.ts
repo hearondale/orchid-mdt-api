@@ -8,6 +8,8 @@ import {
   Param,
   ParseIntPipe,
   Query,
+  Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,17 +18,29 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { OfficerService } from './officer.service';
+import { UnitManagerService } from '../unit-manager/unit-manager.service';
 import { CreateOfficerDto } from './dto/create-officer.dto';
 import { UpdateOfficerDto } from './dto/update-officer.dto';
 import { SetDutyStatusDto } from './dto/set-duty-status.dto';
 import { OnboardOfficerDto } from './dto/onboard-officer.dto';
+import { UpdateCallsignDto } from './dto/update-callsign.dto';
 import { Permissions } from '../../common/decorators/permission.decorator';
+
+interface JwtUser {
+  sub: number;
+  isAdmin: boolean;
+  identifier: string;
+  departmentId: number;
+}
 
 @ApiTags('Officers')
 @ApiBearerAuth()
 @Controller('officers')
 export class OfficerController {
-  constructor(private readonly officers: OfficerService) {}
+  constructor(
+    private readonly officers: OfficerService,
+    private readonly unitManager: UnitManagerService,
+  ) {}
 
   @ApiOperation({
     summary: 'Onboard a new officer — creates Civil + Officer atomically',
@@ -37,7 +51,10 @@ export class OfficerController {
     return this.officers.onboard(dto);
   }
 
-  @ApiOperation({ summary: 'Create an officer profile' })
+  @ApiOperation({
+    summary: 'Create an officer profile — requires manage_officers',
+  })
+  @Permissions('manage_officers')
   @Post()
   create(@Body() dto: CreateOfficerDto) {
     return this.officers.create(dto);
@@ -53,6 +70,18 @@ export class OfficerController {
   getPage(@Query('page') rawPage?: string, @Query('q') q?: string) {
     const page = parseInt(rawPage ?? '1', 10) || 1;
     return this.officers.getPage(page, q);
+  }
+
+  @ApiOperation({ summary: 'Get the logged-in officer profile' })
+  @Get('me')
+  getMe(@Request() req: { user: JwtUser }) {
+    return this.officers.getById(req.user.sub);
+  }
+
+  @ApiOperation({ summary: 'Get all currently online officers' })
+  @Get('online')
+  getOnline() {
+    return this.unitManager.getAllOnline();
   }
 
   @ApiOperation({ summary: 'Get an officer by ID' })
@@ -78,8 +107,23 @@ export class OfficerController {
   setDutyStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: SetDutyStatusDto,
+    @Request() req: { user: JwtUser },
   ) {
+    if (req.user.sub !== id && !req.user.isAdmin) {
+      throw new ForbiddenException(
+        "Cannot change another officer's duty status",
+      );
+    }
     return this.officers.setDutyStatus(id, dto.dutyStatus);
+  }
+
+  @ApiOperation({ summary: 'Update runtime callsign — does not write to DB' })
+  @Patch(':id/callsign')
+  updateCallsign(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateCallsignDto,
+  ) {
+    return this.officers.updateCallsign(id, dto.callsign);
   }
 
   @ApiOperation({ summary: 'Get runtime state (duty status, unit, CAD call)' })

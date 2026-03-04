@@ -46,6 +46,12 @@ export class DispatchController {
     return this.dispatch.getPage(page, q);
   }
 
+  @ApiOperation({ summary: 'Get all non-closed dispatch calls' })
+  @Get('active')
+  getActive() {
+    return this.dispatch.getActive();
+  }
+
   @ApiOperation({
     summary: 'Get a dispatch call by ID (includes live unit data)',
   })

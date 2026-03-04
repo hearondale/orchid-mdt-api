@@ -22,29 +22,26 @@ export class DepartmentService extends BaseService<
     page: number,
     query?: string,
   ): Promise<PaginatedResult<Department>> {
-    const key = `department:page:${page}:q:${query ?? ''}`;
+    const q = query?.trim();
+    const where = q
+      ? { name: { contains: q, mode: 'insensitive' as const } }
+      : {};
+
+    const fetcher = async () => {
+      const [data, total] = await Promise.all([
+        this.prisma.department.findMany({
+          where,
+          skip: (page - 1) * this.PAGE_SIZE,
+          take: this.PAGE_SIZE,
+        }),
+        this.prisma.department.count({ where }),
+      ]);
+      return { data, page, pageSize: this.PAGE_SIZE, total };
+    };
+
+    const key = `department:page:${page}:q:${q ?? ''}`;
     this.trackPageKey(key);
-    return this.getCached(
-      key,
-      async () => {
-        const q = query?.trim();
-        const where = q
-          ? { name: { contains: q, mode: 'insensitive' as const } }
-          : {};
-
-        const [data, total] = await Promise.all([
-          this.prisma.department.findMany({
-            where,
-            skip: (page - 1) * this.PAGE_SIZE,
-            take: this.PAGE_SIZE,
-          }),
-          this.prisma.department.count({ where }),
-        ]);
-
-        return { data, page, pageSize: this.PAGE_SIZE, total };
-      },
-      30_000,
-    );
+    return this.getCached(key, fetcher, q ? 15_000 : 30_000);
   }
 
   async create(dto: CreateDepartmentDto): Promise<Department> {

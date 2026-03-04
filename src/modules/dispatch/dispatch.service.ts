@@ -30,36 +30,33 @@ export class DispatchService extends BaseService<
     page: number,
     query?: string,
   ): Promise<PaginatedResult<DispatchCall>> {
-    const key = `dispatchCall:page:${page}:q:${query ?? ''}`;
+    const q = query?.trim();
+    const where = q
+      ? {
+          OR: [
+            { code: { contains: q, mode: 'insensitive' as const } },
+            { message: { contains: q, mode: 'insensitive' as const } },
+            { location: { contains: q, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+
+    const fetcher = async () => {
+      const [data, total] = await Promise.all([
+        this.prisma.dispatchCall.findMany({
+          where,
+          skip: (page - 1) * this.PAGE_SIZE,
+          take: this.PAGE_SIZE,
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.dispatchCall.count({ where }),
+      ]);
+      return { data, page, pageSize: this.PAGE_SIZE, total };
+    };
+
+    const key = `dispatchCall:page:${page}:q:${q ?? ''}`;
     this.trackPageKey(key);
-    return this.getCached(
-      key,
-      async () => {
-        const q = query?.trim();
-        const where = q
-          ? {
-              OR: [
-                { code: { contains: q, mode: 'insensitive' as const } },
-                { message: { contains: q, mode: 'insensitive' as const } },
-                { location: { contains: q, mode: 'insensitive' as const } },
-              ],
-            }
-          : {};
-
-        const [data, total] = await Promise.all([
-          this.prisma.dispatchCall.findMany({
-            where,
-            skip: (page - 1) * this.PAGE_SIZE,
-            take: this.PAGE_SIZE,
-            orderBy: { createdAt: 'desc' },
-          }),
-          this.prisma.dispatchCall.count({ where }),
-        ]);
-
-        return { data, page, pageSize: this.PAGE_SIZE, total };
-      },
-      30_000,
-    );
+    return this.getCached(key, fetcher, q ? 15_000 : 30_000);
   }
 
   override async getById(id: number): Promise<CadCallRuntime> {
@@ -80,7 +77,7 @@ export class DispatchService extends BaseService<
     const runtime: CadCallRuntime = { ...call, units: [] };
     // Broadcast to all departments — use departmentId 0 as broadcast workaround
     // In practice, dispatch is broadcast to the department that owns the call
-    this.mdtGateway.broadcastToDepartment(0, 'dispatch:created', runtime);
+    this.mdtGateway.broadcastToAll('dispatch:created', runtime);
     return runtime;
   }
 
@@ -97,7 +94,7 @@ export class DispatchService extends BaseService<
     await this.invalidatePages();
     const units = this.unitManager.getUnitSnapshots(String(id));
     const runtime: CadCallRuntime = { ...call, units };
-    this.mdtGateway.broadcastToDepartment(0, 'dispatch:updated', runtime);
+    this.mdtGateway.broadcastToAll('dispatch:updated', runtime);
     return runtime;
   }
 
@@ -127,7 +124,7 @@ export class DispatchService extends BaseService<
     await this.invalidateId(callId);
 
     const units = this.unitManager.getUnitSnapshots(unitId);
-    this.mdtGateway.broadcastToDepartment(0, 'dispatch:assigned', {
+    this.mdtGateway.broadcastToAll('dispatch:assigned', {
       callId,
       units,
     });
@@ -145,7 +142,7 @@ export class DispatchService extends BaseService<
       this.unitManager.unassignUnitFromCall(unitId);
     }
     await this.invalidateId(callId);
-    this.mdtGateway.broadcastToDepartment(0, 'dispatch:assigned', {
+    this.mdtGateway.broadcastToAll('dispatch:assigned', {
       callId,
       units: [],
     });
@@ -159,7 +156,18 @@ export class DispatchService extends BaseService<
     await this.invalidateId(callId);
     await this.invalidatePages();
     const runtime: CadCallRuntime = { ...call, units: [] };
-    this.mdtGateway.broadcastToDepartment(0, 'dispatch:updated', runtime);
+    this.mdtGateway.broadcastToAll('dispatch:updated', runtime);
     return runtime;
+  }
+
+  async getActive(): Promise<CadCallRuntime[]> {
+    const calls = await this.prisma.dispatchCall.findMany({
+      where: { status: { not: CallStatus.CLOSED } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return calls.map((call) => ({
+      ...call,
+      units: this.unitManager.getUnitSnapshots(String(call.id)),
+    }));
   }
 }

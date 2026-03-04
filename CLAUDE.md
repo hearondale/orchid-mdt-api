@@ -6,7 +6,7 @@ Officers log in via FiveM, manage civilians, vehicles, incidents, BOLOs, and dis
 
 ## Stack
 - **Backend:** NestJS + PostgreSQL + Prisma (PrismaPg adapter) + Socket.IO + Cache Manager
-- **Frontend:** Vue (in FiveM CEF browser)
+- **Frontend:** Vue (in FiveM CEF browser, CORS to be adjusted)
 - **FiveM:** TypeScript compiled to JS, runs on the game server
 
 ## Architecture
@@ -175,7 +175,7 @@ SEED_IDENTIFIER=license:test123
 - `pnpm lint`           # Find errors (logic/types)
 - `pnpm lint --fix`     # Auto-fix linting errors
 - `pnpm format`         # Run Prettier formatting
-- `pnpm dev`            # Watch mode (runs build + server)
+- `pnpm start:dev`            # Watch mode (runs build + server)
 - `pnpm prisma generate`# Run after schema changes
 
 ## Coding Standards (Additions)

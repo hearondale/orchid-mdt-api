@@ -43,49 +43,46 @@ export class ArrestService extends BaseService<
     page: number,
     query?: string,
   ): Promise<PaginatedResult<ArrestReport>> {
-    const key = `arrestReport:page:${page}:q:${query ?? ''}`;
+    const q = query?.trim();
+    const where = q
+      ? {
+          OR: [
+            {
+              suspect: {
+                name: { contains: q, mode: 'insensitive' as const },
+              },
+            },
+            {
+              suspect: {
+                surname: { contains: q, mode: 'insensitive' as const },
+              },
+            },
+            {
+              processingOfficer: {
+                badge: { contains: q, mode: 'insensitive' as const },
+              },
+            },
+          ],
+        }
+      : {};
+
+    const fetcher = async () => {
+      const [data, total] = await Promise.all([
+        this.prisma.arrestReport.findMany({
+          where,
+          skip: (page - 1) * this.PAGE_SIZE,
+          take: this.PAGE_SIZE,
+          include: ARREST_INCLUDE,
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.arrestReport.count({ where }),
+      ]);
+      return { data, page, pageSize: this.PAGE_SIZE, total };
+    };
+
+    const key = `arrestReport:page:${page}:q:${q ?? ''}`;
     this.trackPageKey(key);
-    return this.getCached(
-      key,
-      async () => {
-        const q = query?.trim();
-        const where = q
-          ? {
-              OR: [
-                {
-                  suspect: {
-                    name: { contains: q, mode: 'insensitive' as const },
-                  },
-                },
-                {
-                  suspect: {
-                    surname: { contains: q, mode: 'insensitive' as const },
-                  },
-                },
-                {
-                  processingOfficer: {
-                    badge: { contains: q, mode: 'insensitive' as const },
-                  },
-                },
-              ],
-            }
-          : {};
-
-        const [data, total] = await Promise.all([
-          this.prisma.arrestReport.findMany({
-            where,
-            skip: (page - 1) * this.PAGE_SIZE,
-            take: this.PAGE_SIZE,
-            include: ARREST_INCLUDE,
-            orderBy: { createdAt: 'desc' },
-          }),
-          this.prisma.arrestReport.count({ where }),
-        ]);
-
-        return { data, page, pageSize: this.PAGE_SIZE, total };
-      },
-      30_000,
-    );
+    return this.getCached(key, fetcher, q ? 15_000 : 30_000);
   }
 
   override async getById(id: number): Promise<ArrestReportWithCodes> {

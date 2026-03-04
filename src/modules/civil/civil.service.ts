@@ -19,35 +19,43 @@ export class CivilService extends BaseService<
   }
 
   async getPage(page: number, query?: string): Promise<PaginatedResult<Civil>> {
-    const key = `civil:page:${page}:q:${query ?? ''}`;
-    this.trackPageKey(key);
-    return this.getCached(
-      key,
-      async () => {
-        const q = query?.trim();
-        const where = q
-          ? {
-              OR: [
+    const q = query?.trim();
+    const hasDigit = q ? /\d/.test(q) : false;
+    const where = q
+      ? {
+          OR: hasDigit
+            ? [
+                {
+                  registration: {
+                    contains: q,
+                    mode: 'insensitive' as const,
+                  },
+                },
+                { address: { contains: q, mode: 'insensitive' as const } },
+              ]
+            : [
                 { name: { contains: q, mode: 'insensitive' as const } },
                 { surname: { contains: q, mode: 'insensitive' as const } },
               ],
-            }
-          : {};
+        }
+      : {};
 
-        const [data, total] = await Promise.all([
-          this.prisma.civil.findMany({
-            where,
-            skip: (page - 1) * this.PAGE_SIZE,
-            take: this.PAGE_SIZE,
-            include: { officer: true },
-          }),
-          this.prisma.civil.count({ where }),
-        ]);
+    const fetcher = async () => {
+      const [data, total] = await Promise.all([
+        this.prisma.civil.findMany({
+          where,
+          skip: (page - 1) * this.PAGE_SIZE,
+          take: this.PAGE_SIZE,
+          include: { officer: true },
+        }),
+        this.prisma.civil.count({ where }),
+      ]);
+      return { data, page, pageSize: this.PAGE_SIZE, total };
+    };
 
-        return { data, page, pageSize: this.PAGE_SIZE, total };
-      },
-      30_000,
-    );
+    const key = `civil:page:${page}:q:${q ?? ''}`;
+    this.trackPageKey(key);
+    return this.getCached(key, fetcher, q ? 15_000 : 30_000);
   }
 
   override async getById(id: number): Promise<Civil> {

@@ -29,7 +29,7 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
     await this.cache.del(`${this.entityKey}:id:${id}`);
   }
 
-  protected async invalidatePages(): Promise<void> {
+  async invalidatePages(): Promise<void> {
     await Promise.all([...this.pageKeys].map((k) => this.cache.del(k)));
     this.pageKeys.clear();
   }

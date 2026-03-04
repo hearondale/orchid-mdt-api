@@ -12,4 +12,8 @@ export class MdtGatewayService {
   ): void {
     this.server?.to(`department:${departmentId}`).emit(event, payload);
   }
+
+  broadcastToAll(event: string, payload: unknown): void {
+    this.server?.emit(event, payload);
+  }
 }

@@ -9,6 +9,7 @@ import type { Cache } from 'cache-manager';
 import { Officer } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UnitManagerService } from '../unit-manager/unit-manager.service';
+import { CivilService } from '../civil/civil.service';
 import { BaseService } from '../../common/base/base.service';
 import { PaginatedResult } from '../../common/dto/paginated-result.dto';
 import { CreateOfficerDto } from './dto/create-officer.dto';
@@ -31,6 +32,7 @@ export class OfficerService extends BaseService<
     prisma: PrismaService,
     @Inject(CACHE_MANAGER) cache: Cache,
     private readonly unitManager: UnitManagerService,
+    private readonly civilService: CivilService,
   ) {
     super(prisma, cache, 'officer');
   }
@@ -39,17 +41,16 @@ export class OfficerService extends BaseService<
     page: number,
     query?: string,
   ): Promise<PaginatedResult<Officer>> {
-    const key = `officer:page:${page}:q:${query ?? ''}`;
-    this.trackPageKey(key);
-    return this.getCached(
-      key,
-      async () => {
-        const q = query?.trim();
-        const where = q
-          ? {
-              OR: [
+    const q = query?.trim();
+    const hasDigit = q ? /\d/.test(q) : false;
+    const where = q
+      ? {
+          OR: hasDigit
+            ? [
                 { badge: { contains: q, mode: 'insensitive' as const } },
                 { callsign: { contains: q, mode: 'insensitive' as const } },
+              ]
+            : [
                 {
                   civil: {
                     name: { contains: q, mode: 'insensitive' as const },
@@ -61,23 +62,25 @@ export class OfficerService extends BaseService<
                   },
                 },
               ],
-            }
-          : {};
+        }
+      : {};
 
-        const [data, total] = await Promise.all([
-          this.prisma.officer.findMany({
-            where,
-            skip: (page - 1) * this.PAGE_SIZE,
-            take: this.PAGE_SIZE,
-            include: OFFICER_INCLUDE,
-          }),
-          this.prisma.officer.count({ where }),
-        ]);
+    const fetcher = async () => {
+      const [data, total] = await Promise.all([
+        this.prisma.officer.findMany({
+          where,
+          skip: (page - 1) * this.PAGE_SIZE,
+          take: this.PAGE_SIZE,
+          include: OFFICER_INCLUDE,
+        }),
+        this.prisma.officer.count({ where }),
+      ]);
+      return { data, page, pageSize: this.PAGE_SIZE, total };
+    };
 
-        return { data, page, pageSize: this.PAGE_SIZE, total };
-      },
-      30_000,
-    );
+    const key = `officer:page:${page}:q:${q ?? ''}`;
+    this.trackPageKey(key);
+    return this.getCached(key, fetcher, q ? 15_000 : 30_000);
   }
 
   override async getById(id: number): Promise<Officer> {
@@ -197,6 +200,19 @@ export class OfficerService extends BaseService<
     });
 
     await this.invalidatePages();
+    await this.civilService.invalidatePages();
     return result;
+  }
+
+  async updateCallsign(
+    id: number,
+    callsign: string,
+  ): Promise<OfficerRuntime | null> {
+    const officer = await this.getById(id);
+    const runtime = this.unitManager.getOnlineOfficer(officer.identifier);
+    if (runtime) {
+      runtime.callsign = callsign;
+    }
+    return runtime;
   }
 }

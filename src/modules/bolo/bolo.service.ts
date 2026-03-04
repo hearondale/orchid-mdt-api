@@ -32,41 +32,38 @@ export class BoloService extends BaseService<
   }
 
   async getPage(page: number, query?: string): Promise<PaginatedResult<Bolo>> {
-    const key = `bolo:page:${page}:q:${query ?? ''}`;
+    const q = query?.trim();
+    const where = q
+      ? {
+          OR: [
+            {
+              targetIdentifier: {
+                contains: q,
+                mode: 'insensitive' as const,
+              },
+            },
+            { description: { contains: q, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+
+    const fetcher = async () => {
+      const [data, total] = await Promise.all([
+        this.prisma.bolo.findMany({
+          where,
+          skip: (page - 1) * this.PAGE_SIZE,
+          take: this.PAGE_SIZE,
+          include: BOLO_INCLUDE,
+          orderBy: { id: 'desc' },
+        }),
+        this.prisma.bolo.count({ where }),
+      ]);
+      return { data, page, pageSize: this.PAGE_SIZE, total };
+    };
+
+    const key = `bolo:page:${page}:q:${q ?? ''}`;
     this.trackPageKey(key);
-    return this.getCached(
-      key,
-      async () => {
-        const q = query?.trim();
-        const where = q
-          ? {
-              OR: [
-                {
-                  targetIdentifier: {
-                    contains: q,
-                    mode: 'insensitive' as const,
-                  },
-                },
-                { description: { contains: q, mode: 'insensitive' as const } },
-              ],
-            }
-          : {};
-
-        const [data, total] = await Promise.all([
-          this.prisma.bolo.findMany({
-            where,
-            skip: (page - 1) * this.PAGE_SIZE,
-            take: this.PAGE_SIZE,
-            include: BOLO_INCLUDE,
-            orderBy: { id: 'desc' },
-          }),
-          this.prisma.bolo.count({ where }),
-        ]);
-
-        return { data, page, pageSize: this.PAGE_SIZE, total };
-      },
-      30_000,
-    );
+    return this.getCached(key, fetcher, q ? 15_000 : 30_000);
   }
 
   override async getById(id: number): Promise<Bolo> {

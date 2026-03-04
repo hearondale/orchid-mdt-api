@@ -35,54 +35,51 @@ export class IncidentService extends BaseService<
     page: number,
     query?: string,
   ): Promise<PaginatedResult<Incident>> {
-    const key = `incident:page:${page}:q:${query ?? ''}`;
+    const q = query?.trim();
+    const where = q
+      ? {
+          OR: [
+            { title: { contains: q, mode: 'insensitive' as const } },
+            { description: { contains: q, mode: 'insensitive' as const } },
+            {
+              suspects: {
+                some: {
+                  civil: {
+                    name: { contains: q, mode: 'insensitive' as const },
+                  },
+                },
+              },
+            },
+            {
+              officers: {
+                some: {
+                  officer: {
+                    badge: { contains: q, mode: 'insensitive' as const },
+                  },
+                },
+              },
+            },
+          ],
+        }
+      : {};
+
+    const fetcher = async () => {
+      const [data, total] = await Promise.all([
+        this.prisma.incident.findMany({
+          where,
+          skip: (page - 1) * this.PAGE_SIZE,
+          take: this.PAGE_SIZE,
+          include: { department: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.incident.count({ where }),
+      ]);
+      return { data, page, pageSize: this.PAGE_SIZE, total };
+    };
+
+    const key = `incident:page:${page}:q:${q ?? ''}`;
     this.trackPageKey(key);
-    return this.getCached(
-      key,
-      async () => {
-        const q = query?.trim();
-        const where = q
-          ? {
-              OR: [
-                { title: { contains: q, mode: 'insensitive' as const } },
-                { description: { contains: q, mode: 'insensitive' as const } },
-                {
-                  suspects: {
-                    some: {
-                      civil: {
-                        name: { contains: q, mode: 'insensitive' as const },
-                      },
-                    },
-                  },
-                },
-                {
-                  officers: {
-                    some: {
-                      officer: {
-                        badge: { contains: q, mode: 'insensitive' as const },
-                      },
-                    },
-                  },
-                },
-              ],
-            }
-          : {};
-
-        const [data, total] = await Promise.all([
-          this.prisma.incident.findMany({
-            where,
-            skip: (page - 1) * this.PAGE_SIZE,
-            take: this.PAGE_SIZE,
-            include: { department: true },
-            orderBy: { createdAt: 'desc' },
-          }),
-          this.prisma.incident.count({ where }),
-        ]);
-
-        return { data, page, pageSize: this.PAGE_SIZE, total };
-      },
-      30_000,
-    );
+    return this.getCached(key, fetcher, q ? 15_000 : 30_000);
   }
 
   override async getById(id: number): Promise<Incident> {

@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { OrderableItem, OrderItemType } from '@prisma/client';
@@ -26,28 +26,29 @@ export class OrderableItemService extends BaseService<
     page: number,
     query?: string,
   ): Promise<PaginatedResult<OrderableItem>> {
-    const key = `orderableItem:page:${page}:type:${query ?? ''}`;
-    this.trackPageKey(key);
-    return this.getCached(
-      key,
-      async () => {
-        const type = query as OrderItemType | undefined;
-        const where = type ? { type } : {};
+    const type = query as OrderItemType | undefined;
+    const where = type ? { type } : {};
 
-        const [data, total] = await Promise.all([
-          this.prisma.orderableItem.findMany({
-            where,
-            skip: (page - 1) * this.PAGE_SIZE,
-            take: this.PAGE_SIZE,
-            include: ITEM_INCLUDE,
-          }),
-          this.prisma.orderableItem.count({ where }),
-        ]);
+    const fetcher = async () => {
+      const [data, total] = await Promise.all([
+        this.prisma.orderableItem.findMany({
+          where,
+          skip: (page - 1) * this.PAGE_SIZE,
+          take: this.PAGE_SIZE,
+          include: ITEM_INCLUDE,
+        }),
+        this.prisma.orderableItem.count({ where }),
+      ]);
+      return { data, page, pageSize: this.PAGE_SIZE, total };
+    };
 
-        return { data, page, pageSize: this.PAGE_SIZE, total };
-      },
-      30_000,
-    );
+    if (!type) {
+      const key = `orderableItem:page:${page}:type:`;
+      this.trackPageKey(key);
+      return this.getCached(key, fetcher, 30_000);
+    }
+
+    return fetcher();
   }
 
   override async getById(id: number): Promise<OrderableItem> {
@@ -57,7 +58,7 @@ export class OrderableItemService extends BaseService<
         where: { id },
         include: ITEM_INCLUDE,
       });
-      if (!item) throw new Error(`OrderableItem #${id} not found`);
+      if (!item) throw new NotFoundException(`OrderableItem #${id} not found`);
       return item;
     });
   }

@@ -3,6 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { OfficerService } from './officer.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UnitManagerService } from '../unit-manager/unit-manager.service';
+import { CivilService } from '../civil/civil.service';
 
 describe('OfficerService', () => {
   let service: OfficerService;
@@ -13,6 +14,7 @@ describe('OfficerService', () => {
         OfficerService,
         { provide: PrismaService, useValue: {} },
         { provide: UnitManagerService, useValue: {} },
+        { provide: CivilService, useValue: {} },
         {
           provide: CACHE_MANAGER,
           useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() },
