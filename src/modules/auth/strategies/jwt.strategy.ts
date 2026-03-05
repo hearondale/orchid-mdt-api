@@ -25,6 +25,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }) {
     const officer = await this.prisma.officer.findUnique({
       where: { id: payload.sub },
+      include: { department: true },
     });
 
     if (!officer || officer.employmentStatus !== EmploymentStatus.ACTIVE) {

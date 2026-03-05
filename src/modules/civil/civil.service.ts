@@ -55,7 +55,7 @@ export class CivilService extends BaseService<
 
     const key = `civil:page:${page}:q:${q ?? ''}`;
     this.trackPageKey(key);
-    return this.getCached(key, fetcher, q ? 15_000 : 30_000);
+    return this.getCached(key, fetcher, q ? 60_000 : 120_000);
   }
 
   override async getById(id: number): Promise<Civil> {

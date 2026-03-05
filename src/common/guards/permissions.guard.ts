@@ -5,8 +5,10 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Officer } from '@prisma/client';
+import { Officer, Department } from '@prisma/client';
 import { PERMISSIONS_KEY } from '../decorators/permission.decorator';
+
+type OfficerWithDept = Officer & { department: Department };
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -20,15 +22,19 @@ export class PermissionsGuard implements CanActivate {
 
     if (!required || required.length === 0) return true;
 
-    const officer = context.switchToHttp().getRequest().user as Officer;
+    const officer = context.switchToHttp().getRequest().user as OfficerWithDept;
 
     if (!officer) return false;
 
     // isAdmin bypasses all permission checks
     if (officer.isAdmin) return true;
 
-    const hasAll = required.every((p) => officer.permissions.includes(p));
-    if (!hasAll) throw new ForbiddenException('Insufficient permissions');
+    const ok = required.every(
+      (p) =>
+        officer.department?.access.includes(p) ||
+        officer.permissions.includes(p),
+    );
+    if (!ok) throw new ForbiddenException('Insufficient permissions');
 
     return true;
   }

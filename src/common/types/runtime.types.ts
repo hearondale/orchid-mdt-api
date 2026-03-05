@@ -18,14 +18,15 @@ export interface UnitRuntime {
   name: string;
   department: string;
   callsign: string;
+  status: string;
   officers: OfficerRuntime[];
   cadCallId: number | null;
 }
 
 export interface UnitSnapshot {
   officerId: number;
-  badge: string;
   callsign: string;
+  status: string;
 }
 
 export interface CadCallRuntime extends DispatchCall {

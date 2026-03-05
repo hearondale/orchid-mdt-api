@@ -19,6 +19,7 @@ import { IncidentModule } from './modules/incident/incident.module';
 import { DispatchModule } from './modules/dispatch/dispatch.module';
 import { OrderableItemModule } from './modules/orderable-item/orderable-item.module';
 import { ServerModule } from './modules/server/server.module';
+import { ImpoundModule } from './modules/impound/impound.module';
 import { JwtGuard } from './modules/auth/strategies/jwt.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 
@@ -43,6 +44,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     DispatchModule,
     OrderableItemModule,
     ServerModule,
+    ImpoundModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtGuard },

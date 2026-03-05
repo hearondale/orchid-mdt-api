@@ -23,7 +23,7 @@ enum EmploymentStatus {
 }
 
 enum IncidentStatus {
-  OPEN
+  ONGOING
   CLOSED
   COLD
 }
@@ -106,6 +106,7 @@ model Officer {
   incidentRoles IncidentOfficer[]
   bolos         Bolo[]
   dispatchRoles DispatchOfficer[]
+  impounds      Impound[]         @relation("IssuedImpounds")
 
   @@map("officer")
 }
@@ -187,7 +188,7 @@ model Incident {
   departmentId Int
   title        String
   description  String
-  status       IncidentStatus @default(OPEN)
+  status       IncidentStatus @default(ONGOING)
   createdAt    DateTime       @default(now())
 
   department Department        @relation(fields: [departmentId], references: [id])
@@ -293,6 +294,23 @@ model OrderableItem {
   departments OrderableItemDepartment[]
 
   @@map("orderable_item")
+}
+
+model Impound {
+  id          Int      @id @default(autoincrement())
+  plate       String
+  make        String
+  model       String
+  color       String
+  ownerName   String?
+  reason      String?
+  price       Float
+  releaseDate DateTime
+  createdAt   DateTime @default(now())
+  issuedById  Int
+  issuedBy    Officer  @relation("IssuedImpounds", fields: [issuedById], references: [id])
+
+  @@map("impounds")
 }
 
 model OrderableItemDepartment {
