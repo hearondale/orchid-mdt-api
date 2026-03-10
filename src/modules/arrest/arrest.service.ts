@@ -15,13 +15,13 @@ import { CreateArrestDto } from './dto/create-arrest.dto';
 import { UpdateArrestDto } from './dto/update-arrest.dto';
 
 type ArrestReportWithCodes = ArrestReport & {
-  suspect: { id: number; name: string; surname: string };
+  suspect: { id: number; firstName: string; lastName: string };
   processingOfficer: { id: number; badge: string };
   penalCodes: PenalCode[];
 };
 
 const ARREST_INCLUDE = {
-  suspect: { select: { id: true, name: true, surname: true } },
+  suspect: { select: { id: true, firstName: true, lastName: true } },
   processingOfficer: { select: { id: true, badge: true } },
 } as const;
 
@@ -49,12 +49,12 @@ export class ArrestService extends BaseService<
           OR: [
             {
               suspect: {
-                name: { contains: q, mode: 'insensitive' as const },
+                firstName: { contains: q, mode: 'insensitive' as const },
               },
             },
             {
               suspect: {
-                surname: { contains: q, mode: 'insensitive' as const },
+                lastName: { contains: q, mode: 'insensitive' as const },
               },
             },
             {

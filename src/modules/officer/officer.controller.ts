@@ -25,13 +25,7 @@ import { SetDutyStatusDto } from './dto/set-duty-status.dto';
 import { OnboardOfficerDto } from './dto/onboard-officer.dto';
 import { UpdateCallsignDto } from './dto/update-callsign.dto';
 import { Permissions } from '../../common/decorators/permission.decorator';
-
-interface JwtUser {
-  sub: number;
-  isAdmin: boolean;
-  identifier: string;
-  departmentId: number;
-}
+import { JwtUser } from 'src/common/types/api.types';
 
 @ApiTags('Officers')
 @ApiBearerAuth()
@@ -75,7 +69,7 @@ export class OfficerController {
   @ApiOperation({ summary: 'Get the logged-in officer profile' })
   @Get('me')
   getMe(@Request() req: { user: JwtUser }) {
-    return this.officers.getById(req.user.sub);
+    return this.officers.getById(req.user.id);
   }
 
   @ApiOperation({ summary: 'Get all currently online officers' })
@@ -109,7 +103,7 @@ export class OfficerController {
     @Body() dto: SetDutyStatusDto,
     @Request() req: { user: JwtUser },
   ) {
-    if (req.user.sub !== id && !req.user.isAdmin) {
+    if (req.user.id !== id && !req.user.isAdmin) {
       throw new ForbiddenException(
         "Cannot change another officer's duty status",
       );

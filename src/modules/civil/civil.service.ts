@@ -34,8 +34,8 @@ export class CivilService extends BaseService<
                 { address: { contains: q, mode: 'insensitive' as const } },
               ]
             : [
-                { name: { contains: q, mode: 'insensitive' as const } },
-                { surname: { contains: q, mode: 'insensitive' as const } },
+                { firstName: { contains: q, mode: 'insensitive' as const } },
+                { lastName: { contains: q, mode: 'insensitive' as const } },
               ],
         }
       : {};
@@ -46,7 +46,6 @@ export class CivilService extends BaseService<
           where,
           skip: (page - 1) * this.PAGE_SIZE,
           take: this.PAGE_SIZE,
-          include: { officer: true },
         }),
         this.prisma.civil.count({ where }),
       ]);

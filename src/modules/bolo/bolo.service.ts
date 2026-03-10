@@ -53,7 +53,6 @@ export class BoloService extends BaseService<
           where,
           skip: (page - 1) * this.PAGE_SIZE,
           take: this.PAGE_SIZE,
-          include: BOLO_INCLUDE,
           orderBy: { id: 'desc' },
         }),
         this.prisma.bolo.count({ where }),

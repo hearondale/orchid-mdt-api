@@ -1,21 +1,32 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsInt, IsOptional, IsString } from 'class-validator';
 
 export class CreateWeaponDto {
   @ApiProperty({ example: 'SN-123456' })
-  serialNumber: string;
+  @IsString()
+  serialNumber!: string;
 
   @ApiProperty({ example: 'WEAPON_PISTOL' })
-  weaponType: string;
+  @IsString()
+  weaponType!: string;
 
   @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
   registered?: boolean;
 
   @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
   stolen?: boolean;
 
   @ApiPropertyOptional({ example: 'Suppressor attached' })
+  @IsOptional()
+  @IsString()
   notes?: string;
 
   @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
   ownerId?: number;
 }

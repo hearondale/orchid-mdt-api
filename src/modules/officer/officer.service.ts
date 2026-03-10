@@ -53,12 +53,12 @@ export class OfficerService extends BaseService<
             : [
                 {
                   civil: {
-                    name: { contains: q, mode: 'insensitive' as const },
+                    firstName: { contains: q, mode: 'insensitive' as const },
                   },
                 },
                 {
                   civil: {
-                    surname: { contains: q, mode: 'insensitive' as const },
+                    lastName: { contains: q, mode: 'insensitive' as const },
                   },
                 },
               ],
@@ -71,11 +71,23 @@ export class OfficerService extends BaseService<
           where,
           skip: (page - 1) * this.PAGE_SIZE,
           take: this.PAGE_SIZE,
-          include: OFFICER_INCLUDE,
+          select: {
+            id: true,
+            badge: true,
+            rank: true,
+            callsign: true,
+            employmentStatus: true,
+            civil: { select: { id: true, firstName: true, lastName: true } },
+          },
         }),
         this.prisma.officer.count({ where }),
       ]);
-      return { data, page, pageSize: this.PAGE_SIZE, total };
+      return {
+        data: data as unknown as Officer[],
+        page,
+        pageSize: this.PAGE_SIZE,
+        total,
+      };
     };
 
     const key = `officer:page:${page}:q:${q ?? ''}`;
@@ -177,8 +189,8 @@ export class OfficerService extends BaseService<
     const result = await this.prisma.$transaction(async (tx) => {
       const civil = await tx.civil.create({
         data: {
-          name: dto.name,
-          surname: dto.surname,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
           dob: dto.dob,
           licenses: dto.licenses,
         },

@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
   Patch,
   Body,
   Param,
@@ -15,8 +14,8 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { DispatchService } from './dispatch.service';
-import { CreateDispatchCallDto } from './dto/create-dispatch-call.dto';
 import { UpdateDispatchCallDto } from './dto/update-dispatch-call.dto';
+import { UpdateCallStatusDto } from './dto/update-call-status.dto';
 import { AssignUnitDto } from './dto/assign-unit.dto';
 import { Permissions } from '../../common/decorators/permission.decorator';
 
@@ -25,15 +24,6 @@ import { Permissions } from '../../common/decorators/permission.decorator';
 @Controller('dispatch')
 export class DispatchController {
   constructor(private readonly dispatch: DispatchService) {}
-
-  @ApiOperation({
-    summary: 'Create a dispatch call — requires manage_dispatch',
-  })
-  @Permissions('manage_dispatch')
-  @Post()
-  create(@Body() dto: CreateDispatchCallDto) {
-    return this.dispatch.create(dto);
-  }
 
   @ApiOperation({
     summary: 'Get paginated dispatch calls, search by code/message/location',
@@ -58,6 +48,15 @@ export class DispatchController {
   @Get(':id')
   getById(@Param('id', ParseIntPipe) id: number) {
     return this.dispatch.getById(id);
+  }
+
+  @ApiOperation({ summary: 'Update call status — any authenticated officer' })
+  @Patch(':id/status')
+  updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateCallStatusDto,
+  ) {
+    return this.dispatch.update(id, dto);
   }
 
   @ApiOperation({

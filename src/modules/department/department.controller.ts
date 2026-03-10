@@ -32,6 +32,7 @@ export class DepartmentController {
   @Permissions('manage_departments')
   @Post()
   create(@Body() dto: CreateDepartmentDto) {
+    console.log('Creating department with data:', dto);
     return this.departments.create(dto);
   }
 

@@ -27,13 +27,13 @@ async function main() {
     where: { id: 1 },
     update: {},
     create: {
-      name: 'John',
-      surname: 'Doe',
+      firstName: 'John',
+      lastName: 'Doe',
       dob: '1990-05-21',
       licenses: ['driver', 'weapons'],
     },
   });
-  console.log(`✓ Civil: ${civil.name} ${civil.surname} (id=${civil.id})`);
+  console.log(`✓ Civil: ${civil.firstName} ${civil.lastName} (id=${civil.id})`);
 
   const officer = await prisma.officer.upsert({
     where: { identifier: IDENTIFIER },

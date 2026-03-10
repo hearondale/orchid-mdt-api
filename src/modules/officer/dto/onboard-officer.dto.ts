@@ -1,38 +1,60 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class OnboardOfficerDto {
   // Civil fields
   @ApiProperty({ example: 'John' })
-  name: string;
+  @IsString()
+  firstName!: string;
 
   @ApiProperty({ example: 'Doe' })
-  surname: string;
+  @IsString()
+  lastName!: string;
 
   @ApiProperty({ example: '1990-05-21' })
-  dob: string;
+  @IsString()
+  dob!: string;
 
   @ApiProperty({ example: ['driver', 'weapons'], type: [String] })
-  licenses: string[];
+  @IsArray()
+  @IsString({ each: true })
+  licenses!: string[];
 
   // Officer fields
   @ApiProperty({ example: 1 })
-  departmentId: number;
+  @IsInt()
+  departmentId!: number;
 
   @ApiProperty({ example: 'license:abc123' })
-  identifier: string;
+  @IsString()
+  identifier!: string;
 
   @ApiProperty({ example: 'PD-101' })
-  badge: string;
+  @IsString()
+  badge!: string;
 
   @ApiProperty({ example: 'Officer' })
-  rank: string;
+  @IsString()
+  rank!: string;
 
   @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
   isAdmin?: boolean;
 
   @ApiPropertyOptional({ example: ['manage_bolos'], type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   permissions?: string[];
 
   @ApiProperty({ example: '4L-14' })
-  callsign: string;
+  @IsString()
+  callsign!: string;
 }

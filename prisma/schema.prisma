@@ -58,8 +58,8 @@ enum OrderItemType {
 
 model Civil {
   id           Int      @id @default(autoincrement())
-  name         String
-  surname      String
+  firstName    String
+  lastName     String
   dob          String
   registration String   @default("")
   address      String?
@@ -99,14 +99,15 @@ model Officer {
   employmentStatus EmploymentStatus @default(ACTIVE)
   permissions      String[]
 
-  civil         Civil             @relation(fields: [civilId], references: [id])
-  department    Department        @relation(fields: [departmentId], references: [id])
-  arrestReports ArrestReport[]    @relation("ProcessingOfficer")
-  evidence      Evidence[]        @relation("CollectedBy")
-  incidentRoles IncidentOfficer[]
-  bolos         Bolo[]
-  dispatchRoles DispatchOfficer[]
-  impounds      Impound[]         @relation("IssuedImpounds")
+  civil          Civil             @relation(fields: [civilId], references: [id])
+  department     Department        @relation(fields: [departmentId], references: [id])
+  arrestReports  ArrestReport[]    @relation("ProcessingOfficer")
+  evidence       Evidence[]        @relation("CollectedBy")
+  incidentRoles  IncidentOfficer[]
+  leadIncidents  Incident[]        @relation("IncidentLeadOfficer")
+  bolos          Bolo[]
+  dispatchRoles  DispatchOfficer[]
+  impounds       Impound[]         @relation("IssuedImpounds")
 
   @@map("officer")
 }
@@ -184,19 +185,21 @@ model Bolo {
 }
 
 model Incident {
-  id           Int            @id @default(autoincrement())
-  departmentId Int
-  title        String
-  description  String
-  status       IncidentStatus @default(ONGOING)
-  createdAt    DateTime       @default(now())
+  id            Int            @id @default(autoincrement())
+  departmentId  Int
+  leadOfficerId Int?
+  title         String
+  description   String
+  status        IncidentStatus @default(ONGOING)
+  createdAt     DateTime       @default(now())
 
-  department Department        @relation(fields: [departmentId], references: [id])
-  officers   IncidentOfficer[]
-  suspects   IncidentSuspect[]
-  arrests    IncidentArrest[]
-  bolos      IncidentBolo[]
-  evidence   Evidence[]
+  department  Department        @relation(fields: [departmentId], references: [id])
+  leadOfficer Officer?          @relation("IncidentLeadOfficer", fields: [leadOfficerId], references: [id])
+  officers    IncidentOfficer[]
+  suspects    IncidentSuspect[]
+  arrests     IncidentArrest[]
+  bolos       IncidentBolo[]
+  evidence    Evidence[]
 
   @@map("incident")
 }
@@ -261,7 +264,7 @@ model IncidentBolo {
 
 model DispatchCall {
   id        Int        @id @default(autoincrement())
-  code      String
+  code      String?
   message   String
   priority  String
   location  String

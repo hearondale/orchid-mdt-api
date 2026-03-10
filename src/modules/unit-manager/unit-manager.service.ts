@@ -8,13 +8,10 @@ import {
 
 @Injectable()
 export class UnitManagerService {
-  // unitId → UnitRuntime
   private readonly units = new Map<string, UnitRuntime>();
 
-  // officer.identifier → unitId
   private readonly officerToUnit = new Map<string, string>();
 
-  // officer.identifier → OfficerRuntime
   private readonly onlineOfficers = new Map<string, OfficerRuntime>();
 
   setOnline(officer: OfficerRuntime): void {
@@ -31,6 +28,7 @@ export class UnitManagerService {
   }
 
   getAllOnline(): OfficerRuntime[] {
+    console.log(this.onlineOfficers.values());
     return Array.from(this.onlineOfficers.values());
   }
 
@@ -40,10 +38,6 @@ export class UnitManagerService {
     officer.dutyStatus = status;
     return officer;
   }
-
-  // -------------------------------------------------------------------------
-  // Unit management
-  // -------------------------------------------------------------------------
 
   createUnit(
     unitId: string,
@@ -56,6 +50,7 @@ export class UnitManagerService {
       name,
       department,
       callsign,
+      status: '10-9',
       officers: [],
       cadCallId: null,
     };
@@ -152,8 +147,8 @@ export class UnitManagerService {
 
     return unit.officers.map((o) => ({
       officerId: o.id,
-      badge: o.badge,
       callsign: o.callsign ?? '',
+      status: unit.status,
     }));
   }
 

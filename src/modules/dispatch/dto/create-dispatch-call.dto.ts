@@ -1,15 +1,21 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 export class CreateDispatchCallDto {
-  @ApiProperty({ example: '10-31' })
-  code: string;
+  @ApiPropertyOptional({ example: '10-31' })
+  @IsOptional()
+  @IsString()
+  code?: string;
 
   @ApiProperty({ example: 'Robbery in progress at Fleeca Bank' })
-  message: string;
+  @IsString()
+  message!: string;
 
   @ApiProperty({ example: 'HIGH' })
-  priority: string;
+  @IsString()
+  priority!: string;
 
   @ApiProperty({ example: 'Maze Bank Ave & Alta St' })
-  location: string;
+  @IsString()
+  location!: string;
 }

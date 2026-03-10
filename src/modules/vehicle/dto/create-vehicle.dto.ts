@@ -1,24 +1,34 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsInt, IsOptional, IsString } from 'class-validator';
 
 export class CreateVehicleDto {
   @ApiProperty({ example: 'ABCD123' })
-  plate: string;
+  @IsString()
+  plate!: string;
 
   @ApiProperty({ example: '1HGCM82633A123456' })
-  vin: string;
+  @IsString()
+  vin!: string;
 
   @ApiProperty({ example: 'Toyota' })
-  make: string;
+  @IsString()
+  make!: string;
 
   @ApiProperty({ example: 'Camry' })
-  model: string;
+  @IsString()
+  model!: string;
 
   @ApiProperty({ example: 'Black' })
-  color: string;
+  @IsString()
+  color!: string;
 
   @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
   stolen?: boolean;
 
   @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
   ownerId?: number;
 }

@@ -15,7 +15,7 @@ import { HandshakeStore } from './handshake.store';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '8h' },
+        signOptions: { expiresIn: '2h' },
       }),
     }),
   ],

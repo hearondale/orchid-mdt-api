@@ -9,7 +9,18 @@ import { CreateImpoundDto } from './dto/create-impound.dto';
 import { UpdateImpoundDto } from './dto/update-impound.dto';
 
 const IMPOUND_INCLUDE = {
-  issuedBy: { select: { id: true, badge: true } },
+  issuedBy: {
+    select: {
+      id: true,
+      badge: true,
+      civil: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
+  },
 } as const;
 
 @Injectable()

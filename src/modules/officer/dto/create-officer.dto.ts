@@ -1,27 +1,45 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateOfficerDto {
   @ApiProperty({ example: 1, description: 'ID of an existing Civil record' })
-  civilId: number;
+  @IsInt()
+  civilId!: number;
 
   @ApiProperty({ example: 1 })
-  departmentId: number;
+  @IsInt()
+  departmentId!: number;
 
   @ApiProperty({ example: 'license:abc123' })
-  identifier: string;
+  @IsString()
+  identifier!: string;
 
   @ApiProperty({ example: '4143' })
-  badge: string;
+  @IsString()
+  badge!: string;
 
   @ApiProperty({ example: '4L-12' })
-  callsign: string;
+  @IsString()
+  callsign!: string;
 
   @ApiProperty({ example: 'Sergeant' })
-  rank: string;
+  @IsString()
+  rank!: string;
 
   @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
   isAdmin?: boolean;
 
   @ApiPropertyOptional({ example: ['manage_bolos'], type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   permissions?: string[];
 }

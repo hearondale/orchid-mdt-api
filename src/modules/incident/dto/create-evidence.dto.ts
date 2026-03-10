@@ -1,13 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum, IsString } from 'class-validator';
 import { EvidenceType } from '@prisma/client';
 
 export class CreateEvidenceDto {
   @ApiProperty({ example: 'Surveillance footage' })
-  label: string;
+  @IsString()
+  label!: string;
 
   @ApiProperty({ enum: EvidenceType, example: EvidenceType.DIGITAL })
-  type: EvidenceType;
+  @IsEnum(EvidenceType)
+  type!: EvidenceType;
 
   @ApiProperty({ example: 'Footage from Maze Bank Ave camera at 21:32' })
-  description: string;
+  @IsString()
+  description!: string;
 }

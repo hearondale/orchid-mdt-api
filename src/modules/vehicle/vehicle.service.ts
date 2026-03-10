@@ -38,7 +38,7 @@ export class VehicleService extends BaseService<
             { model: { contains: q, mode: 'insensitive' as const } },
             {
               owner: {
-                name: { contains: q, mode: 'insensitive' as const },
+                firstName: { contains: q, mode: 'insensitive' as const },
               },
             },
           ],
@@ -51,11 +51,25 @@ export class VehicleService extends BaseService<
           where,
           skip: (page - 1) * this.PAGE_SIZE,
           take: this.PAGE_SIZE,
-          include: VEHICLE_INCLUDE,
+          select: {
+            id: true,
+            plate: true,
+            make: true,
+            model: true,
+            color: true,
+            stolen: true,
+            ownerId: true,
+            owner: { select: { id: true, firstName: true, lastName: true } },
+          },
         }),
         this.prisma.vehicle.count({ where }),
       ]);
-      return { data, page, pageSize: this.PAGE_SIZE, total };
+      return {
+        data: data as unknown as Vehicle[],
+        page,
+        pageSize: this.PAGE_SIZE,
+        total,
+      };
     };
 
     const key = `vehicle:page:${page}:q:${q ?? ''}`;

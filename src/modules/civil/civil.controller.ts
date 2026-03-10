@@ -15,14 +15,13 @@ export class CivilController {
 
   @ApiOperation({
     summary:
-      'Get paginated civil profiles, optionally filtered by name/surname',
+      'Get paginated civil profiles, optionally filtered by firstName/lastName',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'q', required: false, type: String, example: 'doe' })
   @Get()
-  getPage(@Query('page') rawPage?: string, @Query('q') q?: string) {
-    const page = parseInt(rawPage ?? '1', 10) || 1;
-    return this.civil.getPage(page, q);
+  getPage(@Query('page', ParseIntPipe) page?: number, @Query('q') q?: string) {
+    return this.civil.getPage(page || 1, q);
   }
 
   @ApiOperation({ summary: 'Get a civil profile by ID' })

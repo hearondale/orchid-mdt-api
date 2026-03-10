@@ -1,15 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsArray, IsString } from 'class-validator';
 
 export class CreateCivilDto {
   @ApiProperty({ example: 'John' })
-  name: string;
+  @IsString()
+  firstName!: string;
 
   @ApiProperty({ example: 'Doe' })
-  surname: string;
+  @IsString()
+  lastName!: string;
 
   @ApiProperty({ example: '1967-05-21' })
-  dob: string;
+  @IsString()
+  dob!: string;
 
   @ApiProperty({ example: ['driver', 'weapons'], type: [String] })
-  licenses: string[];
+  @IsArray()
+  @IsString({ each: true })
+  licenses!: string[];
 }

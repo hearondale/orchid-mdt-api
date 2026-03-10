@@ -35,7 +35,6 @@ export class OrderableItemService extends BaseService<
           where,
           skip: (page - 1) * this.PAGE_SIZE,
           take: this.PAGE_SIZE,
-          include: ITEM_INCLUDE,
         }),
         this.prisma.orderableItem.count({ where }),
       ]);

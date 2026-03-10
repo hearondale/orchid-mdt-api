@@ -27,6 +27,8 @@ export class FivemGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleConnection(client: Socket) {
     const secret = client.handshake.auth?.secret;
 
+    console.log(secret, this.config.get<string>('FIVEM_SECRET'));
+
     if (secret !== this.config.get<string>('FIVEM_SECRET')) {
       client.disconnect(true);
       return;

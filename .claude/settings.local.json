@@ -8,7 +8,10 @@
       "Bash(pnpm format:*)",
       "Bash(pnpm test:*)",
       "Bash(npx jest:*)",
-      "Bash(pnpm prisma:*)"
+      "Bash(pnpm prisma:*)",
+      "Bash(cd \"D:/Github Repos/Orchid MDT/frontend\" && npm run type-check 2>&1)",
+      "Bash(cd \"D:/Github Repos/Orchid MDT/frontend\" && npm run lint 2>&1)",
+      "Bash(cd \"D:/Github Repos/Orchid MDT/frontend\" && npm run format 2>&1)"
     ]
   }
 }

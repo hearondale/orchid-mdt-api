@@ -14,6 +14,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { CivilService } from '../civil/civil.service';
 import { VehicleService } from '../vehicle/vehicle.service';
 import { WeaponService } from '../weapon/weapon.service';
+import { DispatchService } from '../dispatch/dispatch.service';
 import { CreateCivilDto } from '../civil/dto/create-civil.dto';
 import { UpdateCivilDto } from '../civil/dto/update-civil.dto';
 import { CreateVehicleDto } from '../vehicle/dto/create-vehicle.dto';
@@ -22,6 +23,7 @@ import { CreateWeaponDto } from '../weapon/dto/create-weapon.dto';
 import { UpdateWeaponDto } from '../weapon/dto/update-weapon.dto';
 import { MarkStolenDto as VehicleStolenDto } from '../vehicle/dto/mark-stolen.dto';
 import { MarkStolenDto as WeaponStolenDto } from '../weapon/dto/mark-stolen.dto';
+import { CreateDispatchCallDto } from '../dispatch/dto/create-dispatch-call.dto';
 
 @ApiTags('Server (FiveM)')
 @ApiHeader({ name: 'Authorization', description: 'Bearer FIVEM_SECRET' })
@@ -33,6 +35,7 @@ export class ServerController {
     private readonly civil: CivilService,
     private readonly vehicles: VehicleService,
     private readonly weapons: WeaponService,
+    private readonly dispatch: DispatchService,
   ) {}
 
   // ── Civil ─────────────────────────────────────────────────────────────────
@@ -114,5 +117,12 @@ export class ServerController {
   @Delete('weapon/:serial')
   deleteWeapon(@Param('serial') serial: string) {
     return this.weapons.deleteBySerial(serial);
+  }
+
+  @ApiOperation({ summary: 'FiveM: create a dispatch call' })
+  @Post('call')
+  createCall(@Body() dto: CreateDispatchCallDto) {
+    console.log('Creating dispatch call from FiveM:', dto);
+    return this.dispatch.create(dto);
   }
 }

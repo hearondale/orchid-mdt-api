@@ -10,11 +10,14 @@ import { UpdateIncidentDto } from './dto/update-incident.dto';
 
 const INCIDENT_INCLUDE = {
   department: true,
+  leadOfficer: { select: { id: true, badge: true, callsign: true } },
   officers: {
     include: { officer: { select: { id: true, badge: true, callsign: true } } },
   },
   suspects: {
-    include: { civil: { select: { id: true, name: true, surname: true } } },
+    include: {
+      civil: { select: { id: true, firstName: true, lastName: true } },
+    },
   },
   arrests: { include: { arrest: true } },
   bolos: { include: { bolo: true } },
@@ -45,7 +48,7 @@ export class IncidentService extends BaseService<
               suspects: {
                 some: {
                   civil: {
-                    name: { contains: q, mode: 'insensitive' as const },
+                    firstName: { contains: q, mode: 'insensitive' as const },
                   },
                 },
               },
@@ -69,7 +72,9 @@ export class IncidentService extends BaseService<
           where,
           skip: (page - 1) * this.PAGE_SIZE,
           take: this.PAGE_SIZE,
-          include: { department: true },
+          include: {
+            leadOfficer: { select: { id: true, badge: true, callsign: true } },
+          },
           orderBy: { createdAt: 'desc' },
         }),
         this.prisma.incident.count({ where }),

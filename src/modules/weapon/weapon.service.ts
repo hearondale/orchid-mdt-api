@@ -37,7 +37,7 @@ export class WeaponService extends BaseService<
             { weaponType: { contains: q, mode: 'insensitive' as const } },
             {
               owner: {
-                name: { contains: q, mode: 'insensitive' as const },
+                firstName: { contains: q, mode: 'insensitive' as const },
               },
             },
           ],
@@ -50,11 +50,24 @@ export class WeaponService extends BaseService<
           where,
           skip: (page - 1) * this.PAGE_SIZE,
           take: this.PAGE_SIZE,
-          include: WEAPON_INCLUDE,
+          select: {
+            id: true,
+            serialNumber: true,
+            weaponType: true,
+            registered: true,
+            stolen: true,
+            ownerId: true,
+            owner: { select: { id: true, firstName: true, lastName: true } },
+          },
         }),
         this.prisma.weapon.count({ where }),
       ]);
-      return { data, page, pageSize: this.PAGE_SIZE, total };
+      return {
+        data: data as unknown as Weapon[],
+        page,
+        pageSize: this.PAGE_SIZE,
+        total,
+      };
     };
 
     const key = `weapon:page:${page}:q:${q ?? ''}`;
