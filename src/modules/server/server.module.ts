@@ -1,12 +1,17 @@
 import { Module } from '@nestjs/common';
-import { ServerController } from './server.controller';
-import { CivilModule } from '../civil/civil.module';
-import { VehicleModule } from '../vehicle/vehicle.module';
-import { WeaponModule } from '../weapon/weapon.module';
-import { DispatchModule } from '../dispatch/dispatch.module';
+import { ServerCivilModule } from './civil/server-civil.module';
+import { ServerVehicleModule } from './vehicle/server-vehicle.module';
+import { ServerWeaponModule } from './weapon/server-weapon.module';
+import { ServerDispatchModule } from './dispatch/server-dispatch.module';
+import { ServerOfficerModule } from './officer/server-officer.module';
 
 @Module({
-  imports: [CivilModule, VehicleModule, WeaponModule, DispatchModule],
-  controllers: [ServerController],
+  imports: [
+    ServerCivilModule,
+    ServerVehicleModule,
+    ServerWeaponModule,
+    ServerDispatchModule,
+    ServerOfficerModule,
+  ],
 })
 export class ServerModule {}

@@ -5,15 +5,17 @@ import {
   Get,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
-  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { UnitManagerService } from './unit-manager.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { DutyStatus, OfficerRuntime } from '../../common/types/runtime.types';
-import { JwtUser } from 'src/common/types/api.types';
+import { CurrentOfficer } from '../../common/decorators/current-officer.decorator';
+import type { OfficerWithDept } from '../auth/strategies/jwt.strategy';
+import { Permissions } from '../../common/decorators/permission.decorator';
 
 @ApiTags('Units')
 @ApiBearerAuth()
@@ -34,8 +36,8 @@ export class UnitManagerController {
     summary: 'Get the unit of the currently authenticated officer',
   })
   @Get('me')
-  getMe(@Request() req: { user: JwtUser }) {
-    const unit = this.unitManager.getOfficerUnit(req.user.identifier);
+  getMe(@CurrentOfficer() officer: OfficerWithDept) {
+    const unit = this.unitManager.getOfficerUnit(officer.identifier);
     if (!unit) {
       throw new ForbiddenException('You are not assigned to any unit');
     }
@@ -53,7 +55,7 @@ export class UnitManagerController {
   ) {
     const officer = await this.prisma.officer.findUnique({
       where: { id: Number(officerId) },
-      include: { department: true },
+      include: { department: true, civil: true },
     });
     if (!officer) throw new NotFoundException('Officer not found');
 
@@ -67,19 +69,37 @@ export class UnitManagerController {
       );
     }
 
-    this.unitManager.joinUnit(officer.identifier, unitId);
+    this.unitManager.joinUnit(officer.civil.identifier!, unitId);
     return this.unitManager.getUnit(unitId);
+  }
+
+  @ApiOperation({
+    summary:
+      'Assign current officer unit to a dispatch call — requires manage_dispatch',
+  })
+  @Post('assign/:callId')
+  attachToCall(
+    @Param('callId', ParseIntPipe) callId: number,
+    @CurrentOfficer() officer: OfficerWithDept,
+  ) {
+    return this.unitManager.assignOfficerUnit(callId, officer.identifier);
+  }
+
+  @ApiOperation({
+    summary:
+      'Unassign current officer unit from a dispatch call — requires manage_dispatch',
+  })
+  @Patch('unassign/:callId')
+  unassignFromCall(
+    @Param('callId', ParseIntPipe) callId: number,
+    @CurrentOfficer() officer: OfficerWithDept,
+  ) {
+    return this.unitManager.unassignOfficerUnit(callId, officer.identifier);
   }
 
   @ApiOperation({ summary: 'Leave current unit and return to solo unit' })
   @Patch('me/detach')
-  async detach(@Request() req: { user: JwtUser }) {
-    const officer = await this.prisma.officer.findUnique({
-      where: { id: req.user.id },
-      include: { department: true },
-    });
-    if (!officer) throw new ForbiddenException('Officer not found');
-
+  detach(@CurrentOfficer() officer: OfficerWithDept) {
     this.unitManager.leaveCurrentUnit(officer.identifier);
 
     const soloUnitId = officer.id.toString();
@@ -100,14 +120,7 @@ export class UnitManagerController {
       'Register the officer as online and place them in a solo unit using their callsign',
   })
   @Post('clockon')
-  async clockOn(@Request() req: { user: JwtUser }) {
-    const officer = await this.prisma.officer.findUnique({
-      where: { id: req.user.id },
-      include: { department: true, civil: true },
-    });
-
-    if (!officer) throw new ForbiddenException('Officer not found');
-
+  clockOn(@CurrentOfficer() officer: OfficerWithDept) {
     const runtime: OfficerRuntime = {
       ...officer,
       dutyStatus: DutyStatus.OFF_DUTY,
@@ -127,6 +140,7 @@ export class UnitManagerController {
       officer.callsign,
     );
 
+    console.log(`Clocking on officer ${officer.callsign} (${officer.id})`);
     this.unitManager.joinUnit(officer.identifier, unitId);
 
     return unit;

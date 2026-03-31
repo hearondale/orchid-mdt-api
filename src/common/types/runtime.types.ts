@@ -8,6 +8,7 @@ export enum DutyStatus {
 }
 
 export interface OfficerRuntime extends Officer {
+  identifier: string; // sourced from civil.identifier at runtime
   dutyStatus: DutyStatus;
   unitId: string | null; // ID of the Unit this officer is currently in
   cadCallId: number | null; // DispatchCall.id this officer is assigned to
@@ -24,9 +25,9 @@ export interface UnitRuntime {
 }
 
 export interface UnitSnapshot {
-  officerId: number;
   callsign: string;
-  status: string;
+  name: string;
+  officerIds: number[];
 }
 
 export interface CadCallRuntime extends DispatchCall {

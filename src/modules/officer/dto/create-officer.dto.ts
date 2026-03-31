@@ -16,10 +16,6 @@ export class CreateOfficerDto {
   @IsInt()
   departmentId!: number;
 
-  @ApiProperty({ example: 'license:abc123' })
-  @IsString()
-  identifier!: string;
-
   @ApiProperty({ example: '4143' })
   @IsString()
   badge!: string;

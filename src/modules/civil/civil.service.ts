@@ -75,6 +75,11 @@ export class CivilService extends BaseService<
   }
 
   async create(dto: CreateCivilDto): Promise<Civil> {
+    const existing = await this.prisma.civil.findFirst({
+      where: { identifier: dto.identifier },
+    });
+    if (existing) return existing;
+
     const civil = await this.prisma.civil.create({ data: dto });
     await this.invalidatePages();
     return civil;

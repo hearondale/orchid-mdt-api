@@ -18,7 +18,7 @@ import {
 import { OrderableItemService } from './orderable-item.service';
 import { CreateOrderableItemDto } from './dto/create-orderable-item.dto';
 import { UpdateOrderableItemDto } from './dto/update-orderable-item.dto';
-import { Permissions } from '../../common/decorators/permission.decorator';
+import { AdminOnly } from '../../common/decorators/admin-only.decorator';
 
 @ApiTags('Orderable Items')
 @ApiBearerAuth()
@@ -26,10 +26,8 @@ import { Permissions } from '../../common/decorators/permission.decorator';
 export class OrderableItemController {
   constructor(private readonly items: OrderableItemService) {}
 
-  @ApiOperation({
-    summary: 'Create an orderable item — requires manage_orderable_items',
-  })
-  @Permissions('manage_orderable_items')
+  @ApiOperation({ summary: 'Create an orderable item — admin only' })
+  @AdminOnly()
   @Post()
   create(@Body() dto: CreateOrderableItemDto) {
     return this.items.create(dto);
@@ -57,10 +55,8 @@ export class OrderableItemController {
     return this.items.getById(id);
   }
 
-  @ApiOperation({
-    summary: 'Update an orderable item — requires manage_orderable_items',
-  })
-  @Permissions('manage_orderable_items')
+  @ApiOperation({ summary: 'Update an orderable item — admin only' })
+  @AdminOnly()
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -69,10 +65,8 @@ export class OrderableItemController {
     return this.items.update(id, dto);
   }
 
-  @ApiOperation({
-    summary: 'Delete an orderable item — requires manage_orderable_items',
-  })
-  @Permissions('manage_orderable_items')
+  @ApiOperation({ summary: 'Delete an orderable item — admin only' })
+  @AdminOnly()
   @Delete(':id')
   delete(@Param('id', ParseIntPipe) id: number) {
     return this.items.delete(id);

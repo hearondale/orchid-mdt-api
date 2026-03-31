@@ -145,19 +145,10 @@ export class IncidentService extends BaseService<
     await this.invalidateId(id);
   }
 
-  async addSuspect(id: number, identifier: string): Promise<void> {
-    const officer = await this.prisma.officer.findUnique({
-      where: { identifier },
-    });
-    if (!officer)
-      throw new NotFoundException(
-        `No officer found for identifier ${identifier}`,
-      );
+  async addSuspect(id: number, civilId: number): Promise<void> {
     await this.prisma.incidentSuspect.upsert({
-      where: {
-        incidentId_civilId: { incidentId: id, civilId: officer.civilId },
-      },
-      create: { incidentId: id, civilId: officer.civilId },
+      where: { incidentId_civilId: { incidentId: id, civilId } },
+      create: { incidentId: id, civilId },
       update: {},
     });
     await this.invalidateId(id);
@@ -184,6 +175,13 @@ export class IncidentService extends BaseService<
       where: { incidentId_boloId: { incidentId: id, boloId } },
       create: { incidentId: id, boloId },
       update: {},
+    });
+    await this.invalidateId(id);
+  }
+
+  async unlinkBolo(id: number, boloId: number): Promise<void> {
+    await this.prisma.incidentBolo.delete({
+      where: { incidentId_boloId: { incidentId: id, boloId } },
     });
     await this.invalidateId(id);
   }

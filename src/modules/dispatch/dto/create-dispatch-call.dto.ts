@@ -18,4 +18,8 @@ export class CreateDispatchCallDto {
   @ApiProperty({ example: 'Maze Bank Ave & Alta St' })
   @IsString()
   location!: string;
+
+  @ApiProperty({ example: '215.76, -810.12, 30.73' })
+  @IsString()
+  coords!: string;
 }

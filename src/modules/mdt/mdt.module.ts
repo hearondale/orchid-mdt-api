@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MdtGateway } from './mdt.gateway';
 import { MdtGatewayService } from './mdt-gateway.service';
+import { IncidentEditLockService } from './incident-edit-lock.service';
 
 @Global()
 @Module({
@@ -15,7 +16,7 @@ import { MdtGatewayService } from './mdt-gateway.service';
       }),
     }),
   ],
-  providers: [MdtGateway, MdtGatewayService],
-  exports: [MdtGatewayService],
+  providers: [MdtGateway, MdtGatewayService, IncidentEditLockService],
+  exports: [MdtGatewayService, IncidentEditLockService],
 })
 export class MdtModule {}

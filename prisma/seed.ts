@@ -31,17 +31,17 @@ async function main() {
       lastName: 'Doe',
       dob: '1990-05-21',
       licenses: ['driver', 'weapons'],
+      identifier: IDENTIFIER,
     },
   });
   console.log(`✓ Civil: ${civil.firstName} ${civil.lastName} (id=${civil.id})`);
 
   const officer = await prisma.officer.upsert({
-    where: { identifier: IDENTIFIER },
+    where: { badge: '4194' },
     update: {},
     create: {
       civilId: civil.id,
       departmentId: department.id,
-      identifier: IDENTIFIER,
       badge: '4194',
       callsign: 'Eagle-3',
       rank: 'Special Agent',
@@ -55,9 +55,7 @@ async function main() {
       ],
     },
   });
-  console.log(
-    `✓ Officer: badge=${officer.badge} identifier=${officer.identifier} (id=${officer.id})`,
-  );
+  console.log(`✓ Officer: badge=${officer.badge} (id=${officer.id})`);
 
   console.log('\n✅ Seed complete.');
   console.log(`   Use identifier "${IDENTIFIER}" to authenticate.\n`);

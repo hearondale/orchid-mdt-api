@@ -1,15 +1,14 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, IsString } from 'class-validator';
 
 export class CreateIncidentDto {
   @ApiProperty({ example: 1 })
   @IsInt()
   departmentId!: number;
 
-  @ApiPropertyOptional({ example: 7 })
-  @IsOptional()
+  @ApiProperty({ example: 7 })
   @IsInt()
-  leadOfficerId?: number;
+  leadOfficerId!: number;
 
   @ApiProperty({ example: 'Armed Robbery at Fleeca Bank' })
   @IsString()

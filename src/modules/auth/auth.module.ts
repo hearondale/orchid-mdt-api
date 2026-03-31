@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { HandshakeStore } from './handshake.store';
+import { ConnectedStore } from './connected.store';
 
 @Module({
   imports: [
@@ -19,8 +20,8 @@ import { HandshakeStore } from './handshake.store';
       }),
     }),
   ],
-  providers: [AuthService, JwtStrategy, HandshakeStore],
+  providers: [AuthService, JwtStrategy, HandshakeStore, ConnectedStore],
   controllers: [AuthController],
-  exports: [HandshakeStore],
+  exports: [HandshakeStore, ConnectedStore],
 })
 export class AuthModule {}

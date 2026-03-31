@@ -128,17 +128,17 @@ export class BoloService extends BaseService<
     if (type === BoloType.PERSON) {
       await this.civilService.getById(parseInt(identifier, 10));
     } else if (type === BoloType.VEHICLE) {
-      const v = await this.vehicleService.findByPlate(identifier);
-      if (!v)
-        throw new NotFoundException(
-          `Vehicle with plate ${identifier} not found`,
-        );
+      // const v = await this.vehicleService.findByPlate(identifier);
+      // if (!v)
+      //   throw new NotFoundException(
+      //     `Vehicle with plate ${identifier} not found`,
+      //   );
     } else if (type === BoloType.WEAPON) {
-      const w = await this.weaponService.findBySerial(identifier);
-      if (!w)
-        throw new NotFoundException(
-          `Weapon with serial ${identifier} not found`,
-        );
+      // const w = await this.weaponService.findBySerial(identifier);
+      // if (!w)
+      //   throw new NotFoundException(
+      //     `Weapon with serial ${identifier} not found`,
+      //   );
     }
   }
 }

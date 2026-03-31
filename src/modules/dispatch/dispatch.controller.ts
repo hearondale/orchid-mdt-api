@@ -16,8 +16,9 @@ import {
 import { DispatchService } from './dispatch.service';
 import { UpdateDispatchCallDto } from './dto/update-dispatch-call.dto';
 import { UpdateCallStatusDto } from './dto/update-call-status.dto';
-import { AssignUnitDto } from './dto/assign-unit.dto';
 import { Permissions } from '../../common/decorators/permission.decorator';
+import { CurrentOfficer } from '../../common/decorators/current-officer.decorator';
+import type { JwtUser } from '../../common/types/api.types';
 
 @ApiTags('Dispatch')
 @ApiBearerAuth()
@@ -62,7 +63,6 @@ export class DispatchController {
   @ApiOperation({
     summary: 'Update a dispatch call — requires manage_dispatch',
   })
-  @Permissions('manage_dispatch')
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -72,31 +72,17 @@ export class DispatchController {
   }
 
   @ApiOperation({
-    summary: 'Assign a unit to the call — requires manage_dispatch',
+    summary: 'Resolve a dispatch call — records resolving unit callsign',
   })
-  @Permissions('manage_dispatch')
-  @Patch(':id/assign')
-  assignUnit(
+  @Patch(':id/resolve')
+  resolve(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AssignUnitDto,
+    @CurrentOfficer() officer: JwtUser,
   ) {
-    return this.dispatch.assignUnit(id, dto.unitId);
-  }
-
-  @ApiOperation({
-    summary: 'Unassign a unit from the call — requires manage_dispatch',
-  })
-  @Permissions('manage_dispatch')
-  @Patch(':id/unassign')
-  unassignUnit(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: AssignUnitDto,
-  ) {
-    return this.dispatch.unassignUnit(id, dto.unitId);
+    return this.dispatch.resolve(id, officer.identifier);
   }
 
   @ApiOperation({ summary: 'Close a dispatch call — requires manage_dispatch' })
-  @Permissions('manage_dispatch')
   @Patch(':id/close')
   close(@Param('id', ParseIntPipe) id: number) {
     return this.dispatch.close(id);

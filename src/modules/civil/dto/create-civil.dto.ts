@@ -18,4 +18,8 @@ export class CreateCivilDto {
   @IsArray()
   @IsString({ each: true })
   licenses!: string[];
+
+  @ApiProperty({ example: 'license:abc123' })
+  @IsString()
+  identifier!: string;
 }

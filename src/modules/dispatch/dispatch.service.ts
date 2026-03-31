@@ -64,9 +64,7 @@ export class DispatchService extends BaseService<
     return this.getCached(key, async () => {
       const call = await this.prisma.dispatchCall.findUnique({ where: { id } });
       if (!call) throw new NotFoundException(`Dispatch call #${id} not found`);
-      const units = this.unitManager.getUnitSnapshots(
-        this.unitManager.getUnit(String(id))?.id ?? '',
-      );
+      const units = this.unitManager.getUnitsForCall(id);
       return { ...call, units } as CadCallRuntime;
     });
   }
@@ -92,60 +90,31 @@ export class DispatchService extends BaseService<
     });
     await this.invalidateId(id);
     await this.invalidatePages();
-    const units = this.unitManager.getUnitSnapshots(String(id));
+    const units = this.unitManager.getUnitsForCall(id);
     const runtime: CadCallRuntime = { ...call, units };
     this.mdtGateway.broadcastToAll('dispatch:updated', runtime);
     return runtime;
   }
 
-  async assignUnit(callId: number, unitId: string): Promise<void> {
-    const call = await this.prisma.dispatchCall.findUnique({
+  async resolve(
+    callId: number,
+    officerIdentifier: string,
+  ): Promise<CadCallRuntime> {
+    await this.getById(callId);
+    const unit = this.unitManager.getOfficerUnit(officerIdentifier);
+    const call = await this.prisma.dispatchCall.update({
       where: { id: callId },
+      data: {
+        status: CallStatus.CLOSED,
+        resolvedByCallsign: unit?.callsign ?? null,
+        resolvedAt: new Date(),
+      },
     });
-    if (!call)
-      throw new NotFoundException(`Dispatch call #${callId} not found`);
-
-    const unit = this.unitManager.getUnit(unitId);
-    if (!unit) return;
-
-    await this.prisma.$transaction(
-      unit.officers.map((o) =>
-        this.prisma.dispatchOfficer.upsert({
-          where: {
-            dispatchId_officerId: { dispatchId: callId, officerId: o.id },
-          },
-          create: { dispatchId: callId, officerId: o.id },
-          update: {},
-        }),
-      ),
-    );
-
-    this.unitManager.assignUnitToCall(unitId, callId);
     await this.invalidateId(callId);
-
-    const units = this.unitManager.getUnitSnapshots(unitId);
-    this.mdtGateway.broadcastToAll('dispatch:assigned', {
-      callId,
-      units,
-    });
-  }
-
-  async unassignUnit(callId: number, unitId: string): Promise<void> {
-    const unit = this.unitManager.getUnit(unitId);
-    if (unit) {
-      await this.prisma.dispatchOfficer.deleteMany({
-        where: {
-          dispatchId: callId,
-          officerId: { in: unit.officers.map((o) => o.id) },
-        },
-      });
-      this.unitManager.unassignUnitFromCall(unitId);
-    }
-    await this.invalidateId(callId);
-    this.mdtGateway.broadcastToAll('dispatch:assigned', {
-      callId,
-      units: [],
-    });
+    await this.invalidatePages();
+    const runtime: CadCallRuntime = { ...call, units: [] };
+    this.mdtGateway.broadcastToAll('dispatch:updated', runtime);
+    return runtime;
   }
 
   async close(callId: number): Promise<CadCallRuntime> {
@@ -160,14 +129,14 @@ export class DispatchService extends BaseService<
     return runtime;
   }
 
+  //@TODO this is dogshit, make cache for the active calls (last X) and other endpoint for all calls like incidents and stuff.
   async getActive(): Promise<CadCallRuntime[]> {
     const calls = await this.prisma.dispatchCall.findMany({
-      where: { status: { not: CallStatus.CLOSED } },
       orderBy: { createdAt: 'desc' },
     });
     return calls.map((call) => ({
       ...call,
-      units: this.unitManager.getUnitSnapshots(String(call.id)),
+      units: this.unitManager.getUnitsForCall(call.id),
     }));
   }
 }

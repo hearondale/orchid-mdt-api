@@ -16,6 +16,7 @@ import { CreateOfficerDto } from './dto/create-officer.dto';
 import { UpdateOfficerDto } from './dto/update-officer.dto';
 import { DutyStatus, OfficerRuntime } from '../../common/types/runtime.types';
 import { OnboardOfficerDto } from './dto/onboard-officer.dto';
+import { officerAuthCacheKey } from '../auth/strategies/jwt.strategy';
 
 const OFFICER_INCLUDE = {
   civil: true,
@@ -109,17 +110,11 @@ export class OfficerService extends BaseService<
 
   async create(dto: CreateOfficerDto): Promise<Officer> {
     const existing = await this.prisma.officer.findFirst({
-      where: {
-        OR: [{ badge: dto.badge }, { identifier: dto.identifier }],
-      },
+      where: { badge: dto.badge },
     });
 
     if (existing) {
-      throw new ConflictException(
-        existing.badge === dto.badge
-          ? 'Badge already in use'
-          : 'Identifier already in use',
-      );
+      throw new ConflictException('Badge already in use');
     }
 
     const officer = await this.prisma.officer.create({
@@ -139,6 +134,7 @@ export class OfficerService extends BaseService<
     });
     await this.invalidateId(id);
     await this.invalidatePages();
+    await this.cache.del(officerAuthCacheKey(id));
     return officer;
   }
 
@@ -147,11 +143,16 @@ export class OfficerService extends BaseService<
     dutyStatus: DutyStatus,
   ): Promise<OfficerRuntime> {
     const officer = await this.getById(id);
-    const runtime = this.unitManager.getOnlineOfficer(officer.identifier);
+    const { civil } = officer as Officer & {
+      civil: { identifier: string | null };
+    };
+    const identifier = civil.identifier!;
+    const runtime = this.unitManager.getOnlineOfficer(identifier);
 
     if (!runtime) {
       const base: OfficerRuntime = {
         ...officer,
+        identifier,
         dutyStatus: DutyStatus.OFF_DUTY,
         unitId: null,
         cadCallId: null,
@@ -159,32 +160,27 @@ export class OfficerService extends BaseService<
       this.unitManager.setOnline(base);
     }
 
-    const updated = this.unitManager.setDutyStatus(
-      officer.identifier,
-      dutyStatus,
-    );
+    const updated = this.unitManager.setDutyStatus(identifier, dutyStatus);
     return updated!;
   }
 
   async getRuntimeState(id: number): Promise<OfficerRuntime | null> {
     const officer = await this.getById(id);
-    return this.unitManager.getOnlineOfficer(officer.identifier);
+    const { civil } = officer as Officer & {
+      civil: { identifier: string | null };
+    };
+    return this.unitManager.getOnlineOfficer(civil.identifier!);
   }
 
   async onboard(dto: OnboardOfficerDto) {
-    const existing = await this.prisma.officer.findFirst({
-      where: {
-        OR: [{ badge: dto.badge }, { identifier: dto.identifier }],
-      },
-    });
+    const [existingBadge, existingIdentifier] = await Promise.all([
+      this.prisma.officer.findFirst({ where: { badge: dto.badge } }),
+      this.prisma.civil.findFirst({ where: { identifier: dto.identifier } }),
+    ]);
 
-    if (existing) {
-      throw new ConflictException(
-        existing.badge === dto.badge
-          ? 'Badge already in use'
-          : 'Identifier already in use',
-      );
-    }
+    if (existingBadge) throw new ConflictException('Badge already in use');
+    if (existingIdentifier)
+      throw new ConflictException('Identifier already in use');
 
     const result = await this.prisma.$transaction(async (tx) => {
       const civil = await tx.civil.create({
@@ -193,6 +189,7 @@ export class OfficerService extends BaseService<
           lastName: dto.lastName,
           dob: dto.dob,
           licenses: dto.licenses,
+          identifier: dto.identifier,
         },
       });
 
@@ -200,7 +197,6 @@ export class OfficerService extends BaseService<
         data: {
           civilId: civil.id,
           departmentId: dto.departmentId,
-          identifier: dto.identifier,
           badge: dto.badge,
           callsign: dto.callsign,
           rank: dto.rank,
@@ -221,7 +217,10 @@ export class OfficerService extends BaseService<
     callsign: string,
   ): Promise<OfficerRuntime | null> {
     const officer = await this.getById(id);
-    const runtime = this.unitManager.getOnlineOfficer(officer.identifier);
+    const { civil } = officer as Officer & {
+      civil: { identifier: string | null };
+    };
+    const runtime = this.unitManager.getOnlineOfficer(civil.identifier!);
     if (runtime) {
       runtime.callsign = callsign;
     }

@@ -7,6 +7,8 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Officer, Department } from '@prisma/client';
 import { PERMISSIONS_KEY } from '../decorators/permission.decorator';
+import { ADMIN_ONLY_KEY } from '../decorators/admin-only.decorator';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 type OfficerWithDept = Officer & { department: Department };
 
@@ -20,14 +22,34 @@ export class PermissionsGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
 
-    if (!required || required.length === 0) return true;
+    const adminOnly = this.reflector.getAllAndOverride<boolean>(
+      ADMIN_ONLY_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    // No permission constraints on this route — allow through (covers @Public() routes)
+    if (isPublic) return true;
 
     const officer = context.switchToHttp().getRequest().user as OfficerWithDept;
 
     if (!officer) return false;
 
+    if (adminOnly) {
+      if (!officer.isAdmin)
+        throw new ForbiddenException('Admin access required');
+      return true;
+    }
+
     // isAdmin bypasses all permission checks
     if (officer.isAdmin) return true;
+
+    // No specific permissions required — authenticated officer is enough
+    if (!required || required.length === 0) return true;
 
     const ok = required.every(
       (p) =>

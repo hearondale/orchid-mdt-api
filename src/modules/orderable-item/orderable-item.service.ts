@@ -26,8 +26,17 @@ export class OrderableItemService extends BaseService<
     page: number,
     query?: string,
   ): Promise<PaginatedResult<OrderableItem>> {
-    const type = query as OrderItemType | undefined;
-    const where = type ? { type } : {};
+    const type = query?.toUpperCase() as OrderItemType | undefined;
+
+    if (
+      type &&
+      OrderItemType[type.toUpperCase() as keyof typeof OrderItemType] ===
+        undefined
+    ) {
+      throw new NotFoundException(`Invalid order type: ${query}`);
+    }
+
+    const where = type ? { type: type } : {};
 
     const fetcher = async () => {
       const [data, total] = await Promise.all([

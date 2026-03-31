@@ -9,10 +9,17 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
 import { HandshakeStore } from '../auth/handshake.store';
+import { ConnectedStore } from '../auth/connected.store';
 import { UnitManagerService } from '../unit-manager/unit-manager.service';
-import { DispatchService } from '../dispatch/dispatch.service';
 
-@WebSocketGateway(3001, { cors: false })
+@WebSocketGateway({
+  path: '/ws',
+  cors: {
+    origin: '*',
+    credentials: true,
+  },
+  transports: ['websocket'], // Forces WebSocket (Nginx prefers this over polling)
+})
 export class FivemGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -20,14 +27,12 @@ export class FivemGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly config: ConfigService,
     private readonly handshake: HandshakeStore,
+    private readonly connected: ConnectedStore,
     private readonly unitManager: UnitManagerService,
-    private readonly dispatch: DispatchService,
   ) {}
 
   handleConnection(client: Socket) {
     const secret = client.handshake.auth?.secret;
-
-    console.log(secret, this.config.get<string>('FIVEM_SECRET'));
 
     if (secret !== this.config.get<string>('FIVEM_SECRET')) {
       client.disconnect(true);
@@ -48,6 +53,7 @@ export class FivemGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     this.handshake.set(data.key, data.identifier);
+    this.connected.add(data.identifier);
     console.log(`[FiveM WS] Handshake stored for ${data.identifier}`);
 
     return { ok: true };
@@ -57,6 +63,7 @@ export class FivemGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handlePlayerDisconnect(@MessageBody() data: { identifier: string }) {
     if (!data?.identifier) return;
 
+    this.connected.remove(data.identifier);
     this.unitManager.officerDisconnected(data.identifier);
     console.log(`[FiveM WS] Officer disconnected: ${data.identifier}`);
   }
@@ -76,6 +83,6 @@ export class FivemGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const officer = this.unitManager.getOnlineOfficer(data.identifier);
     if (!officer?.unitId) return;
 
-    await this.dispatch.assignUnit(data.callId, officer.unitId);
+    await this.unitManager.assignOfficerUnit(data.callId, officer.identifier);
   }
 }

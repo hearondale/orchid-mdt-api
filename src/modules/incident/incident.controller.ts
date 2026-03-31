@@ -8,7 +8,6 @@ import {
   Param,
   ParseIntPipe,
   Query,
-  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,6 +23,10 @@ import { SetStatusDto } from './dto/set-status.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { UpdateEvidenceDto } from './dto/update-evidence.dto';
 import { Permissions } from '../../common/decorators/permission.decorator';
+import { CurrentOfficer } from '../../common/decorators/current-officer.decorator';
+import type { OfficerWithDept } from '../auth/strategies/jwt.strategy';
+import { IncidentEditLockService } from '../mdt/incident-edit-lock.service';
+import { MdtGatewayService } from '../mdt/mdt-gateway.service';
 
 @ApiTags('Incidents')
 @ApiBearerAuth()
@@ -32,12 +35,13 @@ export class IncidentController {
   constructor(
     private readonly incidents: IncidentService,
     private readonly evidence: EvidenceService,
+    private readonly editLocks: IncidentEditLockService,
+    private readonly gateway: MdtGatewayService,
   ) {}
 
   // ── Incidents ─────────────────────────────────────────────────────────────
 
-  @ApiOperation({ summary: 'Create an incident — requires manage_incidents' })
-  @Permissions('manage_incidents')
+  @ApiOperation({ summary: 'Create an incident' })
   @Post()
   create(@Body() dto: CreateIncidentDto) {
     return this.incidents.create(dto);
@@ -62,7 +66,6 @@ export class IncidentController {
   }
 
   @ApiOperation({ summary: 'Update an incident — requires manage_incidents' })
-  @Permissions('manage_incidents')
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -71,15 +74,23 @@ export class IncidentController {
     return this.incidents.update(id, dto);
   }
 
+  //@TODO think how to track which is edited (basically each officer can has only one note for each incident, so we can derive the note id from officer and incident id). Update DB
+  @ApiOperation({ summary: 'Add notes from other officers' })
+  @Patch(':id/note')
+  addNoteToEvidence(
+    @Param('id', ParseIntPipe) _id: number,
+    @Body() _dto: UpdateEvidenceDto,
+  ) {
+    // return this.incidents.editNote(_id, _dto);
+  }
+
   @ApiOperation({ summary: 'Set incident status' })
-  @Permissions('manage_incidents')
   @Patch(':id/status')
   setStatus(@Param('id', ParseIntPipe) id: number, @Body() dto: SetStatusDto) {
     return this.incidents.setStatus(id, dto.status);
   }
 
   @ApiOperation({ summary: 'Add an officer to the incident by badge' })
-  @Permissions('manage_incidents')
   @Post(':id/officers')
   addOfficer(
     @Param('id', ParseIntPipe) id: number,
@@ -89,7 +100,6 @@ export class IncidentController {
   }
 
   @ApiOperation({ summary: 'Remove an officer from the incident' })
-  @Permissions('manage_incidents')
   @Delete(':id/officers/:officerId')
   removeOfficer(
     @Param('id', ParseIntPipe) id: number,
@@ -98,18 +108,16 @@ export class IncidentController {
     return this.incidents.removeOfficer(id, officerId);
   }
 
-  @ApiOperation({ summary: 'Add a suspect by FiveM identifier' })
-  @Permissions('manage_incidents')
+  @ApiOperation({ summary: 'Add a suspect by civil ID' })
   @Post(':id/suspects')
   addSuspect(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { identifier: string },
+    @Body() body: { civilId: number },
   ) {
-    return this.incidents.addSuspect(id, body.identifier);
+    return this.incidents.addSuspect(id, body.civilId);
   }
 
   @ApiOperation({ summary: 'Remove a suspect from the incident' })
-  @Permissions('manage_incidents')
   @Delete(':id/suspects/:civilId')
   removeSuspect(
     @Param('id', ParseIntPipe) id: number,
@@ -119,7 +127,6 @@ export class IncidentController {
   }
 
   @ApiOperation({ summary: 'Link an arrest report to the incident' })
-  @Permissions('manage_incidents')
   @Post(':id/arrests')
   linkArrest(
     @Param('id', ParseIntPipe) id: number,
@@ -129,7 +136,6 @@ export class IncidentController {
   }
 
   @ApiOperation({ summary: 'Link a BOLO to the incident' })
-  @Permissions('manage_incidents')
   @Post(':id/bolos')
   linkBolo(
     @Param('id', ParseIntPipe) id: number,
@@ -138,17 +144,70 @@ export class IncidentController {
     return this.incidents.linkBolo(id, body.boloId);
   }
 
+  @ApiOperation({ summary: 'Unlink a BOLO from the incident' })
+  @Delete(':id/bolos/:boloId')
+  unlinkBolo(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('boloId', ParseIntPipe) boloId: number,
+  ) {
+    return this.incidents.unlinkBolo(id, boloId);
+  }
+
+  // ── Edit lock ─────────────────────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Get current editor for an incident' })
+  @Get(':id/edit-lock')
+  getEditLock(@Param('id', ParseIntPipe) id: number) {
+    return { editor: this.editLocks.getEditor(id) };
+  }
+
+  @ApiOperation({ summary: 'Try to acquire the edit lock for an incident' })
+  @Post(':id/edit-lock')
+  acquireEditLock(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentOfficer() officer: OfficerWithDept,
+  ) {
+    const editorInfo = {
+      id: officer.id,
+      badge: officer.badge,
+      callsign: officer.callsign,
+    };
+    const result = this.editLocks.tryAcquire(id, editorInfo);
+    if (result.acquired) {
+      this.gateway.broadcastToAll('incident:editing', {
+        incidentId: id,
+        editor: editorInfo,
+      });
+    }
+    return result;
+  }
+
+  @ApiOperation({ summary: 'Release the edit lock for an incident' })
+  @Delete(':id/edit-lock')
+  releaseEditLock(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentOfficer() officer: OfficerWithDept,
+  ) {
+    const released = this.editLocks.release(id, officer.id);
+    if (released) {
+      this.gateway.broadcastToAll('incident:editing', {
+        incidentId: id,
+        editor: null,
+      });
+    }
+    return { released };
+  }
+
   // ── Evidence ──────────────────────────────────────────────────────────────
 
   @ApiOperation({ summary: 'Add evidence to an incident' })
-  @Permissions('manage_incidents')
   @Post(':incidentId/evidence')
   createEvidence(
     @Param('incidentId', ParseIntPipe) incidentId: number,
     @Body() dto: CreateEvidenceDto,
-    @Request() req: { user: { id: number } },
+    @CurrentOfficer() officer: OfficerWithDept,
   ) {
-    return this.evidence.createEvidence(incidentId, dto, req.user.id);
+    return this.evidence.createEvidence(incidentId, dto, officer.id);
   }
 
   @ApiOperation({ summary: 'Get all evidence for an incident' })
@@ -158,7 +217,6 @@ export class IncidentController {
   }
 
   @ApiOperation({ summary: 'Update a piece of evidence' })
-  @Permissions('manage_incidents')
   @Patch(':incidentId/evidence/:id')
   updateEvidence(
     @Param('id', ParseIntPipe) id: number,
@@ -168,7 +226,6 @@ export class IncidentController {
   }
 
   @ApiOperation({ summary: 'Delete a piece of evidence' })
-  @Permissions('manage_incidents')
   @Delete(':incidentId/evidence/:id')
   deleteEvidence(@Param('id', ParseIntPipe) id: number) {
     return this.evidence.delete(id);

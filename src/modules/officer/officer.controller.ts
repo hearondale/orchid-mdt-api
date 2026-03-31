@@ -8,7 +8,6 @@ import {
   Param,
   ParseIntPipe,
   Query,
-  Request,
   ForbiddenException,
 } from '@nestjs/common';
 import {
@@ -25,7 +24,8 @@ import { SetDutyStatusDto } from './dto/set-duty-status.dto';
 import { OnboardOfficerDto } from './dto/onboard-officer.dto';
 import { UpdateCallsignDto } from './dto/update-callsign.dto';
 import { Permissions } from '../../common/decorators/permission.decorator';
-import { JwtUser } from 'src/common/types/api.types';
+import { CurrentOfficer } from '../../common/decorators/current-officer.decorator';
+import type { OfficerWithDept } from '../auth/strategies/jwt.strategy';
 
 @ApiTags('Officers')
 @ApiBearerAuth()
@@ -68,8 +68,8 @@ export class OfficerController {
 
   @ApiOperation({ summary: 'Get the logged-in officer profile' })
   @Get('me')
-  getMe(@Request() req: { user: JwtUser }) {
-    return this.officers.getById(req.user.id);
+  getMe(@CurrentOfficer() officer: OfficerWithDept) {
+    return this.officers.getById(officer.id);
   }
 
   @ApiOperation({ summary: 'Get all currently online officers' })
@@ -101,9 +101,9 @@ export class OfficerController {
   setDutyStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: SetDutyStatusDto,
-    @Request() req: { user: JwtUser },
+    @CurrentOfficer() officer: OfficerWithDept,
   ) {
-    if (req.user.id !== id && !req.user.isAdmin) {
+    if (officer.id !== id && !officer.isAdmin) {
       throw new ForbiddenException(
         "Cannot change another officer's duty status",
       );

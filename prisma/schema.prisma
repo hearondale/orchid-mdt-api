@@ -64,6 +64,7 @@ model Civil {
   registration String   @default("")
   address      String?
   licenses     String[]
+  identifier   String?  @unique
 
   officer       Officer?
   vehicles      Vehicle[]
@@ -91,7 +92,6 @@ model Officer {
   id               Int              @id @default(autoincrement())
   civilId          Int              @unique
   departmentId     Int
-  identifier       String           @unique
   badge            String           @unique
   callsign         String
   rank             String
@@ -106,8 +106,8 @@ model Officer {
   incidentRoles  IncidentOfficer[]
   leadIncidents  Incident[]        @relation("IncidentLeadOfficer")
   bolos          Bolo[]
-  dispatchRoles  DispatchOfficer[]
-  impounds       Impound[]         @relation("IssuedImpounds")
+  dispatchRoles  DispatchUnitOfficer[]
+  impounds       Impound[]             @relation("IssuedImpounds")
 
   @@map("officer")
 }
@@ -263,28 +263,44 @@ model IncidentBolo {
 }
 
 model DispatchCall {
-  id        Int        @id @default(autoincrement())
-  code      String?
-  message   String
-  priority  String
-  location  String
-  status    CallStatus @default(PENDING)
-  createdAt DateTime   @default(now())
+  id                 Int        @id @default(autoincrement())
+  code               String?
+  message            String
+  priority           String
+  location           String
+  status             CallStatus @default(PENDING)
+  createdAt          DateTime   @default(now())
+  coords             String
+  resolvedByCallsign String?
+  resolvedAt         DateTime?
 
-  units DispatchOfficer[]
+  units DispatchUnit[]
 
   @@map("dispatch_call")
 }
 
-model DispatchOfficer {
+model DispatchUnit {
+  id         Int    @id @default(autoincrement())
   dispatchId Int
-  officerId  Int
+  callsign   String
+  name       String
 
-  dispatch DispatchCall @relation(fields: [dispatchId], references: [id])
-  officer  Officer      @relation(fields: [officerId], references: [id])
+  dispatch DispatchCall         @relation(fields: [dispatchId], references: [id])
+  officers DispatchUnitOfficer[]
 
-  @@id([dispatchId, officerId])
-  @@map("dispatch_officer")
+  @@unique([dispatchId, callsign])
+  @@map("dispatch_unit")
+}
+
+model DispatchUnitOfficer {
+  unitId    Int
+  officerId Int
+
+  unit    DispatchUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  officer Officer      @relation(fields: [officerId], references: [id])
+
+  @@id([unitId, officerId])
+  @@map("dispatch_unit_officer")
 }
 
 model OrderableItem {
@@ -320,8 +336,8 @@ model OrderableItemDepartment {
   itemId       Int
   departmentId Int
 
-  item       OrderableItem @relation(fields: [itemId], references: [id])
-  department Department    @relation(fields: [departmentId], references: [id])
+  item       OrderableItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  department Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
   @@id([itemId, departmentId])
   @@map("orderable_item_department")

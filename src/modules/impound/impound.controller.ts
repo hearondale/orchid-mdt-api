@@ -8,7 +8,6 @@ import {
   Param,
   ParseIntPipe,
   Query,
-  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,6 +19,8 @@ import { ImpoundService } from './impound.service';
 import { CreateImpoundDto } from './dto/create-impound.dto';
 import { UpdateImpoundDto } from './dto/update-impound.dto';
 import { Permissions } from '../../common/decorators/permission.decorator';
+import { CurrentOfficer } from '../../common/decorators/current-officer.decorator';
+import type { OfficerWithDept } from '../auth/strategies/jwt.strategy';
 
 @ApiTags('Impounds')
 @ApiBearerAuth()
@@ -30,8 +31,11 @@ export class ImpoundController {
   @ApiOperation({ summary: 'Create an impound — requires manage_impounds' })
   @Permissions('manage_impounds')
   @Post()
-  create(@Body() dto: CreateImpoundDto, @Request() req) {
-    return this.impounds.create({ ...dto, issuedById: req.user.id });
+  create(
+    @Body() dto: CreateImpoundDto,
+    @CurrentOfficer() officer: OfficerWithDept,
+  ) {
+    return this.impounds.create({ ...dto, issuedById: officer.id });
   }
 
   @ApiOperation({

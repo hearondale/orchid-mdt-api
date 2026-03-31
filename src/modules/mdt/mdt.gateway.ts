@@ -9,6 +9,7 @@ import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { MdtGatewayService } from './mdt-gateway.service';
+import { IncidentEditLockService } from './incident-edit-lock.service';
 
 @WebSocketGateway({ namespace: '/mdt', cors: { origin: '*' } })
 export class MdtGateway
@@ -21,6 +22,7 @@ export class MdtGateway
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly gatewayService: MdtGatewayService,
+    private readonly editLocks: IncidentEditLockService,
   ) {}
 
   afterInit(server: Server) {
@@ -35,9 +37,13 @@ export class MdtGateway
     }
 
     try {
-      const payload = this.jwtService.verify<{ departmentId: number }>(token, {
+      const payload = this.jwtService.verify<{
+        sub: number;
+        departmentId: number;
+      }>(token, {
         secret: this.config.get<string>('JWT_SECRET'),
       });
+      client.data.officerId = payload.sub;
       void client.join(`department:${payload.departmentId}`);
     } catch {
       client.disconnect(true);
@@ -45,6 +51,15 @@ export class MdtGateway
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`[MDT WS] Client disconnected: ${client.id}`);
+    const officerId = client.data?.officerId as number | undefined;
+    if (officerId) {
+      const released = this.editLocks.releaseAll(officerId);
+      for (const incidentId of released) {
+        this.gatewayService.broadcastToAll('incident:editing', {
+          incidentId,
+          editor: null,
+        });
+      }
+    }
   }
 }

@@ -8,7 +8,6 @@ import {
   Param,
   ParseIntPipe,
   Query,
-  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,6 +19,8 @@ import { ArrestService } from './arrest.service';
 import { CreateArrestDto } from './dto/create-arrest.dto';
 import { UpdateArrestDto } from './dto/update-arrest.dto';
 import { Permissions } from '../../common/decorators/permission.decorator';
+import { CurrentOfficer } from '../../common/decorators/current-officer.decorator';
+import type { OfficerWithDept } from '../auth/strategies/jwt.strategy';
 
 @ApiTags('Arrests')
 @ApiBearerAuth()
@@ -28,12 +29,14 @@ export class ArrestController {
   constructor(private readonly arrests: ArrestService) {}
 
   @ApiOperation({ summary: 'File an arrest report — requires manage_records' })
-  @Permissions('manage_records')
   @Post()
-  create(@Body() dto: CreateArrestDto, @Request() req) {
+  create(
+    @Body() dto: CreateArrestDto,
+    @CurrentOfficer() officer: OfficerWithDept,
+  ) {
     return this.arrests.create({
       ...dto,
-      processingOfficerId: dto.processingOfficerId ?? req.user.id,
+      processingOfficerId: dto.processingOfficerId ?? officer.id,
     });
   }
 
@@ -59,7 +62,6 @@ export class ArrestController {
   @ApiOperation({
     summary: 'Update an arrest report — requires manage_records',
   })
-  @Permissions('manage_records')
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateArrestDto) {
     return this.arrests.update(id, dto);

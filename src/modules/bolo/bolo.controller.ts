@@ -8,7 +8,6 @@ import {
   Param,
   ParseIntPipe,
   Query,
-  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,6 +19,8 @@ import { BoloService } from './bolo.service';
 import { CreateBoloDto } from './dto/create-bolo.dto';
 import { UpdateBoloDto } from './dto/update-bolo.dto';
 import { Permissions } from '../../common/decorators/permission.decorator';
+import { CurrentOfficer } from '../../common/decorators/current-officer.decorator';
+import type { OfficerWithDept } from '../auth/strategies/jwt.strategy';
 
 @ApiTags('BOLOs')
 @ApiBearerAuth()
@@ -28,10 +29,12 @@ export class BoloController {
   constructor(private readonly bolos: BoloService) {}
 
   @ApiOperation({ summary: 'Issue a BOLO — requires manage_bolos' })
-  @Permissions('manage_bolos')
   @Post()
-  create(@Body() dto: CreateBoloDto, @Request() req) {
-    return this.bolos.create({ ...dto, issuedById: req.user.id });
+  create(
+    @Body() dto: CreateBoloDto,
+    @CurrentOfficer() officer: OfficerWithDept,
+  ) {
+    return this.bolos.create({ ...dto, issuedById: officer.id });
   }
 
   @ApiOperation({
@@ -52,14 +55,12 @@ export class BoloController {
   }
 
   @ApiOperation({ summary: 'Update a BOLO — requires manage_bolos' })
-  @Permissions('manage_bolos')
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateBoloDto) {
     return this.bolos.update(id, dto);
   }
 
   @ApiOperation({ summary: 'Deactivate a BOLO — requires manage_bolos' })
-  @Permissions('manage_bolos')
   @Patch(':id/deactivate')
   deactivate(@Param('id', ParseIntPipe) id: number) {
     return this.bolos.deactivate(id);
